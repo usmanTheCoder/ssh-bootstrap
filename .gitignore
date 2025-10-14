@@ -1,0 +1,54 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# Virtual Environments
+venv/
+env/
+ENV/
+.venv/
+virtualenv/
+
+# Build and Distribution
+build/
+dist/
+*.egg-info/
+*.egg
+MANIFEST
+
+# PyInstaller
+*.spec
+
+# IDE and Editors
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+
+# Logs
+*.log
+
+# OS
+Thumbs.db
+.DS_Store
+
+# Project specific
+remote_ssh_gui_backup.py
+remote_ssh_gui_enhanced.py
+*.exe
+
+# SSH keys (if any accidentally placed here)
+*.pem
+*.key
+id_rsa*
