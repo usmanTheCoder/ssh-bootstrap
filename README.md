@@ -21,11 +21,14 @@ A beautiful, user-friendly GUI application to set up passwordless SSH authentica
 ## 🚀 Quick Start
 
 ### Option 1: Run the Executable (Recommended)
-Simply double-click the executable:
+Download the standalone executable from the [Releases](https://github.com/usmanTheCoder/ssh-bootstrap/releases) page or use the one in the `dist` folder:
 ```
 dist\SSH_Bootstrap_Tool.exe
 ```
-No Python installation required!
+**No Python installation required!** Just download and run.
+
+**File Size:** ~9 MB  
+**Platform:** Windows 64-bit
 
 ### Option 2: Run from Source
 ```bash

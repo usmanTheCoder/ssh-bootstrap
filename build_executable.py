@@ -22,16 +22,12 @@ def build_executable():
     """Build the executable using PyInstaller"""
     print("\nBuilding executable...")
     
-    # PyInstaller command with options
+    # PyInstaller command with custom spec file
     command = [
         "pyinstaller",
-        "--onefile",                          # Create a single executable file
-        "--windowed",                         # No console window (GUI only)
-        "--name=SSH_Bootstrap_Tool",          # Name of the executable
-        "--icon=NONE",                        # No icon (you can add one later)
-        "--add-data=remote_ssh_gui.py;.",    # Include the main script
         "--clean",                            # Clean PyInstaller cache
-        "remote_ssh_gui.py"                  # Main script to build
+        "--noconfirm",                        # Replace output directory without asking
+        "ssh_bootstrap.spec"                  # Use custom spec file
     ]
     
     try:
@@ -39,10 +35,14 @@ def build_executable():
         print("\n✓ Build completed successfully!")
         print("\n" + "="*60)
         print("Executable created at: dist\\SSH_Bootstrap_Tool.exe")
+        print("File size: ~", os.path.getsize("dist\\SSH_Bootstrap_Tool.exe") // 1024 // 1024, "MB" if os.path.exists("dist\\SSH_Bootstrap_Tool.exe") else "")
         print("="*60)
         return True
     except subprocess.CalledProcessError:
         print("\n✗ Build failed")
+        return False
+    except Exception as e:
+        print(f"\n✗ Error: {e}")
         return False
 
 def main():
