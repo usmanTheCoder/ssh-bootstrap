@@ -1,4 +1,32 @@
-# Release Notes - SSH Bootstrap Tool
+# Release Notes - SSH Configuration Manager
+
+## Version 2.0.0 (July 17, 2026)
+
+### 🔁 Complete Rewrite: SSH Bootstrap Tool → SSH Configuration Manager
+
+The application evolved from a single-purpose "upload my key to one server"
+tool into a full SSH configuration management app. New entry point: `main.py`
+(the old `remote_ssh_gui.py` / `remote_ssh_bootstrap_ssh.py` remain in the
+repo, superseded).
+
+**New capabilities:**
+- Dashboard with host/jump-host counts, sync status, and quick actions
+- Full Server/VM CRUD (add, edit, duplicate, delete, search/filter)
+- Jump Host (bastion) management with automatic `ProxyJump` generation and
+  cascading updates to every dependent server
+- SSH key generation is now optional - use an existing key, generate a new
+  one, or skip it entirely per server
+- `~/.ssh/config` is now a generated, validated artifact: a managed block is
+  regenerated on every change, duplicate `Host` entries are impossible, and
+  anything outside that block (or the whole file, if unmanaged) is preserved
+- Import an existing SSH config (jump hosts inferred from `ProxyJump`),
+  export a portable copy, or hand-edit the raw file in an advanced mode
+  (validated before saving)
+- Git-based backup/sync: connect a GitHub repo via Personal Access Token,
+  push/pull your configuration, with conflict detection and resolution
+- Modern CustomTkinter UI with light/dark mode and toast notifications
+
+---
 
 ## Version 1.0.0 (October 14, 2025)
 

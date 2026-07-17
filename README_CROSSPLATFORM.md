@@ -1,30 +1,35 @@
-# 🔐 SSH Key Bootstrap Tool
+# 🔐 SSH Configuration Manager - Cross-Platform Notes
 
-A beautiful, cross-platform GUI application to set up passwordless SSH authentication on remote servers.
+A complete SSH configuration management application, designed to run on
+Windows, Linux, and macOS.
 
 **Developed by M. Usman Sharif & M. Umair Khan**
 
 ---
 
-## 🌍 Cross-Platform Support
+## 🌍 Platform Status
 
-✅ **Windows** (10/11)  
-✅ **Linux** (Ubuntu, Debian, Fedora, Arch, etc.)  
-✅ **macOS** (10.14+)
+✅ **Windows** (10/11) - fully built, packaged, and tested
+🧪 **Linux** (Ubuntu, Debian, Fedora, Arch, etc.) - supported by design, not yet packaged/tested
+🧪 **macOS** (10.14+) - supported by design, not yet packaged/tested
+
+The core application (`sshmgr/`) is OS-agnostic: `Path.home() / ".ssh" / "config"`
+resolves correctly everywhere, and the SSH config engine, key management, and
+Git sync logic don't depend on Windows-specific APIs. Only the Windows build
+has actually been produced and run so far - if you package and run this on
+Linux or macOS, please report back what you find.
 
 ---
 
 ## ✨ Features
 
-- 🎨 **Modern, Beautiful UI** - Clean and professional interface
-- 🌍 **Cross-Platform** - Works on Windows, Linux, and macOS
-- 🔒 **IP Validation** - Only accepts valid IP address formats
-- 👁️ **Password Toggle** - Show/hide password visibility
-- 📊 **Progress Tracking** - Real-time progress bar and color-coded logs
-- ⚡ **Multi-threaded** - Non-blocking UI during operations
-- 🔄 **Retry Mechanism** - Configurable retry attempts for connections
-- ✅ **Automatic Testing** - Verifies passwordless SSH after setup
-- 🎨 **Platform-Adaptive UI** - Uses native fonts for each OS
+- 🖥️ **Dashboard** - host/jump-host counts, sync status, quick actions
+- 🗂️ **Server/VM Management** - add, edit, duplicate, delete, search/filter
+- 🧭 **Jump Host Management** - configure once, cascading updates to dependents
+- 🔑 **SSH Key Management** - use existing, generate new, or skip - independent of server config
+- 📝 **SSH Configuration Engine** - managed block inside `~/.ssh/config`, validated before every save, never duplicates `Host` entries, never touches unrelated content
+- 🔄 **Git Synchronization** - GitHub-backed backup/restore with conflict handling
+- 🎨 **Modern UI** - customtkinter-based, light/dark mode, toast notifications
 
 ---
 
@@ -34,13 +39,13 @@ A beautiful, cross-platform GUI application to set up passwordless SSH authentic
 
 #### Windows:
 ```
-dist\SSH_Bootstrap_Tool.exe
+dist\SSH_Configuration_Manager.exe
 ```
 
-#### Linux/macOS:
+#### Linux/macOS (untested - build it yourself first, see below):
 ```bash
-chmod +x dist/SSH_Bootstrap_Tool
-./dist/SSH_Bootstrap_Tool
+chmod +x dist/SSH_Configuration_Manager
+./dist/SSH_Configuration_Manager
 ```
 
 ### Option 2: Run from Source
@@ -49,50 +54,38 @@ chmod +x dist/SSH_Bootstrap_Tool
 pip install -r requirements.txt
 
 # Run the application
-python remote_ssh_gui.py
+python main.py
 # or on Linux/macOS
-python3 remote_ssh_gui.py
+python3 main.py
 ```
 
 ---
 
 ## 📋 Requirements
 
-### For Executable:
+### For the executable:
 - **Windows**: OpenSSH client (pre-installed on Windows 10/11)
 - **Linux**: openssh-client (usually pre-installed)
 - **macOS**: OpenSSH (pre-installed)
+- **All platforms**: Git, only if you use Git Synchronization
 
-### For Running from Source:
-- Python 3.7+
-- paramiko >= 3.0.0
-- cryptography >= 41.0.0
-- tkinter (usually included with Python)
+### For running from source:
+- Python 3.10+
+- See `requirements.txt` (paramiko, cryptography, customtkinter, GitPython, keyring, requests)
+- tkinter (usually included with Python; see platform notes below for Linux/macOS)
 
 ---
 
 ## 🎯 How to Use
 
 1. **Launch the application**
+2. **Dashboard** - see current host/jump-host counts and sync status
+3. **Servers → + Add Server/VM** - Host Alias, Hostname/IP, Username, Port, a key (existing/new/skip), and an optional Jump Host
+4. **Jump Hosts** (optional) - configure a bastion once, reuse it anywhere
+5. **SSH Configuration** - view, import, export, or (advanced) hand-edit the generated config
+6. **Git Synchronization** (optional) - connect a GitHub repo via Personal Access Token
 
-2. **Enter server details:**
-   - Remote Server IP (validated format)
-   - Username
-   - Password (with visibility toggle)
-   - Max Retries (default: 3)
-
-3. **Click "🚀 Start Bootstrap"**
-
-4. **Monitor progress:**
-   - 🟢 Green = Success
-   - 🔴 Red = Error
-   - 🟡 Yellow = Warning
-   - 🔵 Blue = Info
-
-5. **Done!** Connect without password:
-   ```bash
-   ssh username@ip_address
-   ```
+Every change is validated and written to `~/.ssh/config` automatically.
 
 ---
 
@@ -120,16 +113,19 @@ build.bat
 
 #### Method 4: Manual PyInstaller
 ```bash
-# Install PyInstaller
 pip install pyinstaller
 
-# Windows
-pyinstaller --onefile --windowed --name=SSH_Bootstrap_Tool --clean remote_ssh_gui.py
+# All platforms
+pyinstaller --onefile --windowed --name=SSH_Configuration_Manager \
+  --additional-hooks-dir=. --collect-all=customtkinter --clean main.py
 
-# Linux/macOS
-pyinstaller --onefile --windowed --name=SSH_Bootstrap_Tool --clean remote_ssh_gui.py
-chmod +x dist/SSH_Bootstrap_Tool
+# Linux/macOS: mark it executable afterward
+chmod +x dist/SSH_Configuration_Manager
 ```
+
+`--additional-hooks-dir=.` picks up `hook-paramiko.py`'s hidden imports;
+`--collect-all=customtkinter` is required to bundle customtkinter's theme
+assets - without it the packaged app won't render correctly.
 
 The executable will be created in the `dist` folder.
 
@@ -138,64 +134,21 @@ The executable will be created in the `dist` folder.
 ## 📁 Project Structure
 
 ```
-remote_ssh/
-├── remote_ssh_gui.py          # Main GUI application (cross-platform)
-├── remote_ssh_bootstrap_ssh.py # Original CLI version
+ssh-bootstrap/
+├── main.py                     # Application entry point
+├── sshmgr/                     # Core application package (OS-agnostic)
+│   └── ui/                     #   customtkinter screens
+├── remote_ssh_gui.py           # Legacy single-purpose tool (superseded)
+├── remote_ssh_bootstrap_ssh.py # Legacy CLI version
 ├── build_crossplatform.py     # Cross-platform build script
-├── build_executable.py         # Python build script (legacy)
+├── build_executable.py         # Windows-focused build script
 ├── build.bat                   # Windows batch build script
 ├── build.sh                    # Linux/macOS shell build script
 ├── requirements.txt            # Python dependencies
-├── README.md                   # This file
-├── dist/
-│   └── SSH_Bootstrap_Tool[.exe] # Standalone executable
-└── build/                      # Build artifacts (can be deleted)
+├── README.md                   # Main documentation
+└── dist/
+    └── SSH_Configuration_Manager[.exe]  # Standalone executable
 ```
-
----
-
-## 🎨 Platform-Specific Features
-
-### Windows
-- Uses **Segoe UI** font
-- Uses **Consolas** for monospace
-- Detects OpenSSH in System32
-
-### Linux
-- Uses **Ubuntu** font (or system default)
-- Uses **Monospace** for terminal
-- Standard SSH paths
-
-### macOS
-- Uses **SF Pro Display** font
-- Uses **Monaco** for monospace
-- Native macOS look and feel
-
----
-
-## 🔧 Technical Details
-
-### What It Does:
-1. **Generates SSH Key Pair** (if not exists)
-   - Creates `~/.ssh/id_rsa` and `~/.ssh/id_rsa.pub`
-   - 2048-bit RSA key
-   - Proper permissions on Unix systems (600/644)
-
-2. **Uploads Public Key**
-   - Connects to remote server via SSH
-   - Creates `.ssh` directory on remote
-   - Adds public key to `authorized_keys`
-   - Sets correct permissions (700 for .ssh, 600 for authorized_keys)
-
-3. **Tests Connection**
-   - Verifies passwordless SSH works
-   - Provides connection command
-
-### Dependencies:
-- **Paramiko**: SSH protocol implementation (Python)
-- **Cryptography**: Cryptographic operations
-- **Tkinter**: GUI framework (built-in with Python)
-- **Platform**: OS detection and compatibility
 
 ---
 
@@ -203,19 +156,14 @@ remote_ssh/
 
 ### All Platforms
 
-#### "Authentication failed"
-- Verify username and password are correct
-- Check if SSH is enabled on remote server
-- Increase max retries
+#### "ssh-keygen not found"
+Install OpenSSH client for your platform (see Installation Notes below).
 
-#### "Connection timeout"
-- Verify IP address is correct
-- Check network connectivity
-- Ensure port 22 is accessible
+#### Git Synchronization: "GitHub authentication failed"
+The Personal Access Token needs `repo` scope.
 
 ### Windows Specific
 
-#### "ssh-keygen not found"
 ```powershell
 # Check if OpenSSH is installed
 Get-WindowsCapability -Online | Where-Object Name -like 'OpenSSH*'
@@ -226,7 +174,6 @@ Add-WindowsCapability -Online -Name OpenSSH.Client~~~~0.0.1.0
 
 ### Linux Specific
 
-#### "ssh-keygen not found"
 ```bash
 # Ubuntu/Debian
 sudo apt-get install openssh-client
@@ -240,17 +187,15 @@ sudo pacman -S openssh
 
 ### macOS Specific
 
-#### "Permission denied"
 - macOS has OpenSSH pre-installed
-- Check System Preferences > Security & Privacy
-- Allow terminal/app to access network
+- Check System Preferences > Security & Privacy if the app is blocked from network access
 
 ---
 
 ## 📝 Installation Notes
 
 ### Linux
-After building, you may need to install additional dependencies:
+You may need `tkinter` (the base library customtkinter builds on) installed separately:
 
 ```bash
 # Ubuntu/Debian
@@ -272,26 +217,6 @@ brew install python-tk@3.11
 
 ---
 
-## 🌟 Changelog
-
-### Version 1.1 - Cross-Platform
-- ✅ Cross-platform support (Windows, Linux, macOS)
-- ✅ Platform-adaptive fonts
-- ✅ Smart SSH tool detection
-- ✅ Proper file permissions on Unix systems
-- ✅ Cross-platform build scripts
-
-### Version 1.0
-- Initial release (Windows only)
-- Modern GUI with validation
-- IP address format validation
-- Password visibility toggle
-- Multi-threaded operations
-- Color-coded logging
-- Progress tracking
-
----
-
 ## 👨‍💻 Developers
 
 **M. Usman Sharif & M. Umair Khan**
@@ -306,8 +231,9 @@ This project is provided as-is for personal and educational use.
 
 ## 🤝 Contributing
 
-Feel free to fork, modify, and enhance this tool!
+Feel free to fork, modify, and enhance this tool! Linux/macOS build reports
+and fixes are especially welcome since that side is untested.
 
 ---
 
-**Enjoy secure, passwordless SSH connections on any platform! 🚀**
+**Manage your SSH configuration with confidence, on any platform. 🚀**

@@ -1,7 +1,6 @@
 @echo off
 echo ============================================================
-echo SSH Bootstrap Tool - Build Script
-echo Developed by M. Usman Sharif ^& M. Umair Khan
+echo SSH Configuration Manager - Build Script
 echo ============================================================
 echo.
 
@@ -20,13 +19,13 @@ python -m pip install pyinstaller
 REM Build the executable
 echo.
 echo Building executable...
-pyinstaller --onefile --windowed --name=SSH_Bootstrap_Tool --clean remote_ssh_gui.py
+pyinstaller --onefile --windowed --name=SSH_Configuration_Manager --additional-hooks-dir=. --collect-all=customtkinter --clean --noconfirm main.py
 
 echo.
 echo ============================================================
-if exist dist\SSH_Bootstrap_Tool.exe (
+if exist dist\SSH_Configuration_Manager.exe (
     echo BUILD SUCCESSFUL!
-    echo Executable location: dist\SSH_Bootstrap_Tool.exe
+    echo Executable location: dist\SSH_Configuration_Manager.exe
 ) else (
     echo BUILD FAILED!
 )

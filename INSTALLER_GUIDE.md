@@ -2,7 +2,7 @@
 
 **Developed by M. Usman Sharif & M. Umair Khan**
 
-This guide explains how to create a professional Windows installer for SSH Bootstrap Tool.
+This guide explains how to create a professional Windows installer for the SSH Configuration Manager.
 
 ---
 
@@ -27,15 +27,14 @@ Inno Setup is a free, professional installer creator for Windows.
 Ensure you have these files ready:
 
 ```
-remote_ssh/
+ssh-bootstrap/
 ├── dist/
-│   ├── SSH_Bootstrap_Tool.exe          ✓ Required
-│   └── SSH_Bootstrap_Tool_Debug.exe    ✓ Required
+│   ├── SSH_Configuration_Manager.exe          ✓ Required
+│   └── SSH_Configuration_Manager_Debug.exe    ✓ Required
 ├── README.md                            ✓ Required
 ├── QUICKSTART.md                        ✓ Required
-├── TROUBLESHOOTING.md                   ✓ Required
 ├── LICENSE                              ✓ Required
-└── installer_script.iss                 ✓ Required (created)
+└── installer_script.iss                 ✓ Required (already in repo)
 ```
 
 ### Step 3: Build Executables First
@@ -84,7 +83,7 @@ if (Test-Path $innoSetup) {
 ### Step 5: Test the Installer
 
 1. Navigate to `installer/` folder
-2. Run `SSH_Bootstrap_Tool_Setup_v1.0.0.exe`
+2. Run `SSH_Configuration_Manager_Setup_v2.0.0.exe`
 3. Follow installation wizard
 4. Test the installed application
 5. Test uninstallation
@@ -95,7 +94,7 @@ if (Test-Path $innoSetup) {
 
 ### Installation Features:
 - ✅ **Application files** - Both regular and debug executables
-- ✅ **Documentation** - README, Quick Start, Troubleshooting
+- ✅ **Documentation** - README, Quick Start Guide
 - ✅ **Start Menu shortcuts** - Easy access to the app
 - ✅ **Desktop shortcut** - Optional during installation
 - ✅ **Uninstaller** - Clean removal from system
@@ -116,7 +115,7 @@ if (Test-Path $innoSetup) {
 
 Edit `installer_script.iss`:
 ```iss
-#define MyAppVersion "1.0.0"  ; Change this
+#define MyAppVersion "2.0.0"  ; Change this
 ```
 
 ### Add Custom Icon
@@ -166,86 +165,10 @@ We've included `installer_script.iss` which can be adapted for NSIS.
 
 ## 🚀 Quick Build Script
 
-Create `build_installer.py`:
+`build_installer.py` is already included in the repo - it finds Inno Setup,
+builds the regular and debug executables if they're missing, then compiles
+`installer_script.iss`. Just run:
 
-```python
-"""
-Automated installer builder
-Developed by M. Usman Sharif & M. Umair Khan
-"""
-
-import subprocess
-import os
-import sys
-
-def build_installer():
-    """Build the Windows installer using Inno Setup"""
-    print("="*60)
-    print("SSH Bootstrap Tool - Installer Builder")
-    print("="*60)
-    print()
-    
-    # Check if Inno Setup is installed
-    inno_paths = [
-        r"C:\Program Files (x86)\Inno Setup 6\ISCC.exe",
-        r"C:\Program Files\Inno Setup 6\ISCC.exe",
-    ]
-    
-    inno_setup = None
-    for path in inno_paths:
-        if os.path.exists(path):
-            inno_setup = path
-            break
-    
-    if not inno_setup:
-        print("✗ Inno Setup not found!")
-        print("\nPlease install Inno Setup from:")
-        print("https://jrsoftware.org/isdl.php")
-        print("\nOr specify the path manually.")
-        return False
-    
-    print(f"✓ Found Inno Setup: {inno_setup}")
-    print()
-    
-    # Check if executables exist
-    if not os.path.exists("dist/SSH_Bootstrap_Tool.exe"):
-        print("✗ Executable not found!")
-        print("Please build the executable first:")
-        print("  python build_executable.py")
-        return False
-    
-    print("✓ Executable found")
-    print()
-    
-    # Build installer
-    print("Building installer...")
-    try:
-        result = subprocess.run(
-            [inno_setup, "installer_script.iss"],
-            check=True,
-            capture_output=True,
-            text=True
-        )
-        print(result.stdout)
-        print("\n✓ Installer built successfully!")
-        print("\nInstaller location: installer/SSH_Bootstrap_Tool_Setup_v1.0.0.exe")
-        return True
-    except subprocess.CalledProcessError as e:
-        print(f"✗ Build failed: {e}")
-        print(e.stderr)
-        return False
-
-if __name__ == "__main__":
-    success = build_installer()
-    if success:
-        print("\n" + "="*60)
-        print("You can now distribute:")
-        print("  installer/SSH_Bootstrap_Tool_Setup_v1.0.0.exe")
-        print("="*60)
-    sys.exit(0 if success else 1)
-```
-
-Save this and run:
 ```bash
 python build_installer.py
 ```
@@ -267,7 +190,7 @@ python build_debug.py
 python build_installer.py
 
 # 4. Test installer
-.\installer\SSH_Bootstrap_Tool_Setup_v1.0.0.exe
+.\installer\SSH_Configuration_Manager_Setup_v2.0.0.exe
 ```
 
 ---
@@ -300,20 +223,20 @@ To avoid "Unknown Publisher" warnings:
 
 ### Sign the Installer
 ```bash
-signtool sign /f certificate.pfx /p password /t http://timestamp.digicert.com SSH_Bootstrap_Tool_Setup_v1.0.0.exe
+signtool sign /f certificate.pfx /p password /t http://timestamp.digicert.com SSH_Configuration_Manager_Setup_v2.0.0.exe
 ```
 
 ---
 
 ## 📊 Installer Size
 
-Expected installer size: **~10-12 MB**
+Expected installer size: **~20-25 MB**
 
 Includes:
-- SSH_Bootstrap_Tool.exe (~9 MB)
-- SSH_Bootstrap_Tool_Debug.exe (~9 MB)
+- SSH_Configuration_Manager.exe (~20-23 MB, customtkinter's bundled assets make this bigger than a plain Tkinter build)
+- SSH_Configuration_Manager_Debug.exe (~20-23 MB)
 - Documentation files (~100 KB)
-- Compressed with LZMA (~50% compression)
+- Compressed with LZMA
 
 ---
 
@@ -322,8 +245,8 @@ Includes:
 ### Upload to GitHub Releases:
 1. Go to repository on GitHub
 2. Click "Releases" → "Create a new release"
-3. Tag: `v1.0.0`
-4. Upload `SSH_Bootstrap_Tool_Setup_v1.0.0.exe`
+3. Tag: `v2.0.0`
+4. Upload `SSH_Configuration_Manager_Setup_v2.0.0.exe`
 5. Add release notes
 
 ### Alternative Hosting:

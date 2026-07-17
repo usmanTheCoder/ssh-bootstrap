@@ -1,6 +1,8 @@
-# 🔐 SSH Key Bootstrap Tool
+# 🔐 SSH Configuration Manager
 
-A beautiful, user-friendly GUI application to set up passwordless SSH authentication on remote servers.
+A complete SSH configuration management application: manage servers, jump hosts,
+and SSH keys through a modern GUI, with `~/.ssh/config` generated and validated
+automatically, and optional Git-based backup/sync.
 
 **Developed by M. Usman Sharif & M. Umair Khan**
 
@@ -8,27 +10,27 @@ A beautiful, user-friendly GUI application to set up passwordless SSH authentica
 
 ## ✨ Features
 
-- 🎨 **Modern, Beautiful UI** - Clean and professional interface
-- 🔒 **IP Validation** - Only accepts valid IP address formats
-- 👁️ **Password Toggle** - Show/hide password visibility
-- 📊 **Progress Tracking** - Real-time progress bar and color-coded logs
-- ⚡ **Multi-threaded** - Non-blocking UI during operations
-- 🔄 **Retry Mechanism** - Configurable retry attempts for connections
-- ✅ **Automatic Testing** - Verifies passwordless SSH after setup
+- 🖥️ **Dashboard** - host/jump-host counts, sync status, one-click quick actions
+- 🗂️ **Server/VM Management** - add, edit, duplicate, delete, search/filter, all reflected in `~/.ssh/config` instantly
+- 🧭 **Jump Host (Bastion) Management** - configure once, reference from any server; edits/deletes cascade to every dependent server automatically
+- 🔑 **SSH Key Management** - use an existing key, generate a new one, or skip key management entirely (key generation is optional, not mandatory)
+- 📝 **SSH Configuration Engine** - owns a managed block inside `~/.ssh/config`, never touches your existing unmanaged entries, validates before every save, never creates duplicate `Host` entries
+- 📥📤 **Import/Export** - import an existing SSH config (jump hosts inferred automatically from `ProxyJump`), export a portable copy
+- ✍️ **Advanced Manual Editing** - optional raw-text edit mode with validation before save, for anything the structured UI doesn't cover
+- 🔄 **Git Synchronization** - back up and restore your SSH configuration via a GitHub repository (PAT-authenticated), with conflict detection and resolution
+- 🎨 **Modern UI** - light/dark mode, sidebar navigation, toast notifications
 
 ---
 
 ## 🚀 Quick Start
 
 ### Option 1: Run the Executable (Recommended)
-Download the standalone executable from the [Releases](https://github.com/usmanTheCoder/ssh-bootstrap/releases) page or use the one in the `dist` folder:
 ```
-dist\SSH_Bootstrap_Tool.exe
+dist\SSH_Configuration_Manager.exe
 ```
 **No Python installation required!** Just download and run.
 
-**File Size:** ~9 MB  
-**Platform:** Windows 64-bit
+**Platform:** Windows 64-bit (Linux/macOS support planned)
 
 ### Option 2: Run from Source
 ```bash
@@ -36,47 +38,34 @@ dist\SSH_Bootstrap_Tool.exe
 pip install -r requirements.txt
 
 # Run the application
-python remote_ssh_gui.py
+python main.py
 ```
 
 ---
 
 ## 📋 Requirements
 
-### For Executable:
-- Windows OS
-- OpenSSH client (usually pre-installed on Windows 10/11)
+### For the executable:
+- Windows 10/11
+- OpenSSH client (usually pre-installed)
+- Git (only needed if you use the Git Synchronization feature)
 
-### For Running from Source:
-- Python 3.7+
-- paramiko >= 3.0.0
-- cryptography >= 41.0.0
+### For running from source:
+- Python 3.10+
+- See `requirements.txt` (paramiko, customtkinter, GitPython, keyring, requests, cryptography)
 
 ---
 
 ## 🎯 How to Use
 
-1. **Launch the application**
-   - Run `SSH_Bootstrap_Tool.exe` or `python remote_ssh_gui.py`
+1. **Launch the application** - `python main.py` or the packaged `.exe`
+2. **Dashboard** - see your current host/jump-host counts and sync status
+3. **Add a Server/VM** - Host Alias, Hostname/IP, Username, Port, an existing/new/skip SSH key, and an optional Jump Host
+4. **Add a Jump Host** (optional) - servers can reference it; editing or deleting it updates every dependent server's `ProxyJump` automatically
+5. **SSH Configuration tab** - view the generated config, import an existing one, export a copy, or (advanced) edit the raw file directly with pre-save validation
+6. **Git Synchronization tab** (optional) - connect a GitHub repo with a Personal Access Token, then push/pull your configuration as a backup
 
-2. **Enter server details:**
-   - Remote Server IP (validated format)
-   - Username
-   - Password (with visibility toggle)
-   - Max Retries (default: 3)
-
-3. **Click "🚀 Start Bootstrap"**
-
-4. **Monitor progress:**
-   - Green = Success
-   - Red = Error
-   - Yellow = Warning
-   - Blue = Info
-
-5. **Done!** Connect without password:
-   ```bash
-   ssh username@ip_address
-   ```
+Every add/edit/delete you make regenerates and validates `~/.ssh/config` immediately - you should never need to hand-edit it for normal use.
 
 ---
 
@@ -89,7 +78,7 @@ python remote_ssh_gui.py
 python build_executable.py
 ```
 
-#### Method 2: Using Batch File
+#### Method 2: Using Batch File (Windows)
 ```bash
 build.bat
 ```
@@ -97,8 +86,9 @@ build.bat
 #### Method 3: Manual PyInstaller
 ```bash
 pip install pyinstaller
-pyinstaller --onefile --windowed --name=SSH_Bootstrap_Tool --clean remote_ssh_gui.py
+pyinstaller --onefile --windowed --name=SSH_Configuration_Manager --additional-hooks-dir=. --collect-all=customtkinter --clean main.py
 ```
+`--additional-hooks-dir=.` picks up `hook-paramiko.py`; `--collect-all=customtkinter` bundles customtkinter's theme/asset files, which PyInstaller won't find otherwise.
 
 The executable will be created in the `dist` folder.
 
@@ -107,62 +97,50 @@ The executable will be created in the `dist` folder.
 ## 📁 Project Structure
 
 ```
-remote_ssh/
-├── remote_ssh_gui.py          # Main GUI application
-├── remote_ssh_bootstrap_ssh.py # Original CLI version
+ssh-bootstrap/
+├── main.py                     # Application entry point
+├── sshmgr/                     # Core application package
+│   ├── models.py                #   Server / JumpHost / SSHKey / Settings data models
+│   ├── store.py                 #   JSON-backed app state + CRUD/validation
+│   ├── ssh_config.py            #   ~/.ssh/config generation, validation, import/export
+│   ├── keys.py                  #   SSH key generation/discovery
+│   ├── deploy.py                #   Deploy a key to a server over password auth
+│   ├── git_sync.py               #   GitHub-backed backup/sync
+│   └── ui/                      #   CustomTkinter screens (Dashboard, Servers, Jump Hosts, ...)
+├── tests/                      # pytest suite for the core engine
+├── remote_ssh_gui.py           # Legacy single-purpose bootstrap tool (superseded by main.py)
+├── remote_ssh_bootstrap_ssh.py # Legacy CLI version
 ├── build_executable.py         # Python build script
-├── build.bat                   # Windows batch build script
+├── build.bat / build.sh        # Platform build scripts
 ├── requirements.txt            # Python dependencies
-├── README.md                   # This file
-├── dist/
-│   └── SSH_Bootstrap_Tool.exe # Standalone executable
-└── build/                      # Build artifacts (can be deleted)
+└── dist/                       # Standalone executable (after building)
 ```
-
----
-
-## 🎨 UI Features
-
-### Input Validation
-- **IP Address**: Only accepts valid IP format (0-255 per octet)
-- **Required Fields**: All fields must be filled
-
-### Visual Feedback
-- **Progress Bar**: Animated during operations
-- **Color-coded Logs**:
-  - 🟢 Success messages
-  - 🔴 Error messages
-  - 🟡 Warning messages
-  - 🔵 Information messages
-
-### User Controls
-- 👁️ **Password Toggle**: Click eye icon to show/hide password
-- 🚀 **Start Bootstrap**: Begin the SSH setup process
-- 🗑️ **Clear Log**: Clear the output log
 
 ---
 
 ## 🔧 Technical Details
 
-### What It Does:
-1. **Generates SSH Key Pair** (if not exists)
-   - Creates `~/.ssh/id_rsa` and `~/.ssh/id_rsa.pub`
-   - 2048-bit RSA key
+### Single source of truth
+`sshmgr/ssh_config.py` owns a marked "managed block" inside `~/.ssh/config`. Only
+that block is ever regenerated; anything else already in your config file - or
+added outside the markers by another tool - is left untouched. Every save is
+validated (structurally and via a real SSH-config parse) before anything
+touches disk, with an automatic `.bak` backup of whatever was there before.
 
-2. **Uploads Public Key**
-   - Connects to remote server via SSH
-   - Creates `.ssh` directory on remote
-   - Adds public key to `authorized_keys`
-   - Sets correct permissions (700 for .ssh, 600 for authorized_keys)
+### Git Synchronization
+Authentication is a GitHub Personal Access Token, stored via your OS credential
+store (`keyring`) - never written to disk in plain text. The repo holds one
+portable config file; pushing writes/commits/pushes your current state, pulling
+treats the repo as the source of truth (added/updated/removed hosts are
+reconciled into the local app state), and conflicts are detected and can be
+resolved by keeping either the local or remote version.
 
-3. **Tests Connection**
-   - Verifies passwordless SSH works
-   - Provides connection command
-
-### Dependencies:
-- **Paramiko**: SSH protocol implementation
-- **Cryptography**: Cryptographic operations
-- **Tkinter**: GUI framework (built-in with Python)
+### Dependencies
+- **paramiko** / **cryptography** - SSH protocol + key generation
+- **customtkinter** - modern themed GUI (built on Tkinter)
+- **GitPython** - Git operations for synchronization
+- **keyring** - secure OS-level credential storage
+- **requests** - GitHub API calls (token validation)
 
 ---
 
@@ -173,42 +151,28 @@ remote_ssh/
 pip install pyinstaller
 ```
 
-### "Authentication failed"
-- Verify username and password are correct
-- Check if SSH is enabled on remote server
-- Increase max retries
+### App builds but the packaged .exe won't launch / looks broken
+Make sure the build included `--collect-all=customtkinter` - without it, the
+executable is missing customtkinter's theme JSON files.
 
-### "Connection timeout"
-- Verify IP address is correct
-- Check network connectivity
-- Ensure port 22 is accessible
+### "ssh-keygen not found" / "Deploy key" fails
+Ensure OpenSSH client is installed and on `PATH` (Windows: usually pre-installed
+under `C:\Windows\System32\OpenSSH\`).
 
-### "SSH key generation failed"
-- Check if `ssh-keygen` is in system PATH
-- Run as administrator if permission issues occur
+### Git Synchronization errors
+- "GitHub authentication failed" - check the Personal Access Token has `repo` scope.
+- "Push rejected" - someone else (or another machine) pushed since your last
+  sync; use Pull first, resolve any conflict, then push again.
 
 ---
 
 ## 📝 Notes
 
-- The executable is **portable** - can be copied to any Windows machine
-- SSH keys are stored in `C:\Users\<YourUsername>\.ssh\`
-- Existing SSH keys are reused (not overwritten)
-- The application requires OpenSSH client installed on Windows
-
----
-
-## 🌟 Changelog
-
-### Version 1.0
-- Initial release
-- Modern GUI with validation
-- IP address format validation
-- Password visibility toggle
-- Multi-threaded operations
-- Color-coded logging
-- Progress tracking
-- Standalone executable build
+- SSH keys are stored in `C:\Users\<YourUsername>\.ssh\`; existing keys are
+  reused, never overwritten.
+- The app's own data (server/jump-host list, settings) lives in
+  `C:\Users\<YourUsername>\.ssh-bootstrap-manager\data.json` - separate from
+  the actual SSH config file it generates.
 
 ---
 
@@ -224,10 +188,4 @@ This project is provided as-is for personal and educational use.
 
 ---
 
-## 🤝 Contributing
-
-Feel free to fork, modify, and enhance this tool!
-
----
-
-**Enjoy secure, passwordless SSH connections! 🚀**
+**Manage your SSH configuration with confidence. 🚀**

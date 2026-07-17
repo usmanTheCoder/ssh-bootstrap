@@ -1,12 +1,12 @@
-; SSH Bootstrap Tool Installer Script
-; Developed by M. Usman Sharif & M. Umair Khan
+; SSH Configuration Manager Installer Script
 ; Inno Setup Script
 
-#define MyAppName "SSH Bootstrap Tool"
-#define MyAppVersion "1.0.0"
+#define MyAppName "SSH Configuration Manager"
+#define MyAppVersion "2.0.0"
 #define MyAppPublisher "M. Usman Sharif & M. Umair Khan"
 #define MyAppURL "https://github.com/usmanTheCoder/ssh-bootstrap"
-#define MyAppExeName "SSH_Bootstrap_Tool.exe"
+#define MyAppExeName "SSH_Configuration_Manager.exe"
+#define MyAppDebugExeName "SSH_Configuration_Manager_Debug.exe"
 
 [Setup]
 ; Basic Application Info
@@ -26,7 +26,7 @@ DisableProgramGroupPage=yes
 
 ; Output Configuration
 OutputDir=installer
-OutputBaseFilename=SSH_Bootstrap_Tool_Setup_v{#MyAppVersion}
+OutputBaseFilename=SSH_Configuration_Manager_Setup_v{#MyAppVersion}
 SetupIconFile=
 Compression=lzma
 SolidCompression=yes
@@ -58,12 +58,11 @@ Name: "quicklaunchicon"; Description: "{cm:CreateQuickLaunchIcon}"; GroupDescrip
 [Files]
 ; Main executable
 Source: "dist\{#MyAppExeName}"; DestDir: "{app}"; Flags: ignoreversion
-Source: "dist\SSH_Bootstrap_Tool_Debug.exe"; DestDir: "{app}"; Flags: ignoreversion
+Source: "dist\{#MyAppDebugExeName}"; DestDir: "{app}"; Flags: ignoreversion
 
 ; Documentation
 Source: "README.md"; DestDir: "{app}"; Flags: ignoreversion
 Source: "QUICKSTART.md"; DestDir: "{app}"; Flags: ignoreversion
-Source: "TROUBLESHOOTING.md"; DestDir: "{app}"; Flags: ignoreversion
 Source: "LICENSE"; DestDir: "{app}"; Flags: ignoreversion
 
 ; NOTE: Don't use "Flags: ignoreversion" on any shared system files
@@ -71,9 +70,8 @@ Source: "LICENSE"; DestDir: "{app}"; Flags: ignoreversion
 [Icons]
 ; Start Menu shortcuts
 Name: "{group}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"
-Name: "{group}\{#MyAppName} (Debug)"; Filename: "{app}\SSH_Bootstrap_Tool_Debug.exe"
+Name: "{group}\{#MyAppName} (Debug)"; Filename: "{app}\{#MyAppDebugExeName}"
 Name: "{group}\Quick Start Guide"; Filename: "{app}\QUICKSTART.md"
-Name: "{group}\Troubleshooting"; Filename: "{app}\TROUBLESHOOTING.md"
 Name: "{group}\{cm:UninstallProgram,{#MyAppName}}"; Filename: "{uninstallexe}"
 
 ; Desktop shortcut (optional)
@@ -96,29 +94,24 @@ Root: HKCU; Subkey: "Software\{#MyAppPublisher}\{#MyAppName}"; ValueType: string
 // Custom code to check prerequisites
 function InitializeSetup(): Boolean;
 var
-  ErrorCode: Integer;
-  ResultCode: Integer;
-  VCRedistURL: String;
   MsgBoxResult: Integer;
 begin
   Result := True;
-  
-  // Check if Visual C++ Redistributable is installed
-  // This is a simplified check - you may need to check specific registry keys
-  
+
   // Show welcome message with requirements
   MsgBoxResult := MsgBox(
-    'Welcome to SSH Bootstrap Tool Setup!' + #13#10#13#10 +
+    'Welcome to SSH Configuration Manager Setup!' + #13#10#13#10 +
     'Requirements:' + #13#10 +
     '- Windows 10 or later' + #13#10 +
     '- OpenSSH Client (usually pre-installed)' + #13#10 +
+    '- Git (for the optional Git Synchronization feature)' + #13#10 +
     '- Visual C++ Redistributable (recommended)' + #13#10#13#10 +
     'If you encounter issues, install VC++ Redistributable from:' + #13#10 +
     'https://aka.ms/vs/17/release/vc_redist.x64.exe' + #13#10#13#10 +
     'Continue with installation?',
     mbInformation, MB_YESNO
   );
-  
+
   if MsgBoxResult = IDNO then
     Result := False;
 end;
@@ -131,10 +124,10 @@ begin
     MsgBox(
       'Installation complete!' + #13#10#13#10 +
       'Quick Start:' + #13#10 +
-      '1. Launch SSH Bootstrap Tool' + #13#10 +
-      '2. Enter server IP, username, and password' + #13#10 +
-      '3. Click Start Bootstrap' + #13#10 +
-      '4. Connect without password: ssh user@ip' + #13#10#13#10 +
+      '1. Launch SSH Configuration Manager' + #13#10 +
+      '2. Use the Dashboard to add a Server/VM or import an existing SSH config' + #13#10 +
+      '3. Manage Jump Hosts, SSH Keys, and Git Synchronization from the sidebar' + #13#10 +
+      '4. Every change you make is applied to ~/.ssh/config automatically' + #13#10#13#10 +
       'For help, see QUICKSTART.md in the installation folder.',
       mbInformation, MB_OK
     );
@@ -146,15 +139,15 @@ var
   MsgBoxResult: Integer;
 begin
   Result := True;
-  
+
   MsgBoxResult := MsgBox(
-    'This will remove SSH Bootstrap Tool from your computer.' + #13#10#13#10 +
-    'Note: SSH keys created by this tool will NOT be deleted.' + #13#10 +
+    'This will remove SSH Configuration Manager from your computer.' + #13#10#13#10 +
+    'Note: your SSH keys and ~/.ssh/config will NOT be deleted.' + #13#10 +
     'They are stored in: C:\Users\YourName\.ssh\' + #13#10#13#10 +
     'Continue with uninstallation?',
     mbConfirmation, MB_YESNO
   );
-  
+
   if MsgBoxResult = IDNO then
     Result := False;
 end;

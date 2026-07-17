@@ -1,6 +1,5 @@
 """
-Automated installer builder for SSH Bootstrap Tool
-Developed by M. Usman Sharif & M. Umair Khan
+Automated installer builder for the SSH Configuration Manager
 """
 
 import subprocess
@@ -11,8 +10,8 @@ def check_executables():
     """Check if executables exist"""
     print("Checking for executables...")
     
-    if not os.path.exists("dist/SSH_Bootstrap_Tool.exe"):
-        print("✗ SSH_Bootstrap_Tool.exe not found!")
+    if not os.path.exists("dist/SSH_Configuration_Manager.exe"):
+        print("✗ SSH_Configuration_Manager.exe not found!")
         print("\nBuilding regular executable...")
         try:
             subprocess.run([sys.executable, "build_executable.py"], check=True)
@@ -21,10 +20,10 @@ def check_executables():
             print("✗ Failed to build regular executable")
             return False
     else:
-        print("✓ SSH_Bootstrap_Tool.exe found")
+        print("✓ SSH_Configuration_Manager.exe found")
     
-    if not os.path.exists("dist/SSH_Bootstrap_Tool_Debug.exe"):
-        print("✗ SSH_Bootstrap_Tool_Debug.exe not found!")
+    if not os.path.exists("dist/SSH_Configuration_Manager_Debug.exe"):
+        print("✗ SSH_Configuration_Manager_Debug.exe not found!")
         print("\nBuilding debug executable...")
         try:
             subprocess.run([sys.executable, "build_debug.py"], check=True)
@@ -33,7 +32,7 @@ def check_executables():
             print("✗ Failed to build debug executable")
             return False
     else:
-        print("✓ SSH_Bootstrap_Tool_Debug.exe found")
+        print("✓ SSH_Configuration_Manager_Debug.exe found")
     
     return True
 
@@ -58,8 +57,7 @@ def find_inno_setup():
 def build_installer():
     """Build the Windows installer using Inno Setup"""
     print("="*70)
-    print("SSH Bootstrap Tool - Installer Builder")
-    print("Developed by M. Usman Sharif & M. Umair Khan")
+    print("SSH Configuration Manager - Installer Builder")
     print("="*70)
     print()
     
@@ -116,10 +114,10 @@ def build_installer():
         print("📦 INSTALLER CREATED")
         print("="*70)
         print()
-        print("Location: installer\\SSH_Bootstrap_Tool_Setup_v1.0.0.exe")
-        
+        print("Location: installer\\SSH_Configuration_Manager_Setup_v2.0.0.exe")
+
         # Check file size
-        installer_path = "installer/SSH_Bootstrap_Tool_Setup_v1.0.0.exe"
+        installer_path = "installer/SSH_Configuration_Manager_Setup_v2.0.0.exe"
         if os.path.exists(installer_path):
             size_mb = os.path.getsize(installer_path) / (1024 * 1024)
             print(f"Size: {size_mb:.1f} MB")

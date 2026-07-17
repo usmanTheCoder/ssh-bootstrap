@@ -1,4 +1,4 @@
-# SSH Bootstrap Tool - Installation Guide
+# SSH Configuration Manager - Installation Guide
 
 **Developed by M. Usman Sharif & M. Umair Khan**
 
@@ -6,14 +6,13 @@
 
 ### For End Users
 
-The easiest way to use the SSH Bootstrap Tool is with the standalone executable:
+The easiest way to use the SSH Configuration Manager is with the standalone executable:
 
-1. **Download** `SSH_Bootstrap_Tool.exe` from the `dist` folder
+1. **Download** `SSH_Configuration_Manager.exe` from the `dist` folder
 2. **Run** the executable by double-clicking it
 3. No Python installation required!
 
-**File Location:** `dist\SSH_Bootstrap_Tool.exe`  
-**File Size:** ~9 MB  
+**File Location:** `dist\SSH_Configuration_Manager.exe`
 **Platform:** Windows 64-bit
 
 ### Features
@@ -27,8 +26,9 @@ The easiest way to use the SSH Bootstrap Tool is with the standalone executable:
 ## 🔧 Building from Source
 
 ### Prerequisites
-- Python 3.7 or higher
+- Python 3.10 or higher
 - pip (Python package manager)
+- Git (only needed for the Git Synchronization feature)
 
 ### Installation Steps
 
@@ -43,9 +43,9 @@ The easiest way to use the SSH Bootstrap Tool is with the standalone executable:
    pip install -r requirements.txt
    ```
 
-3. **Run the GUI:**
+3. **Run the application:**
    ```bash
-   python remote_ssh_gui.py
+   python main.py
    ```
 
 ### Building Your Own Executable
@@ -56,37 +56,46 @@ To create a standalone executable:
 python build_executable.py
 ```
 
-The executable will be created in the `dist` folder.
+This bundles `main.py` with PyInstaller, including customtkinter's theme
+assets (`--collect-all=customtkinter`) and paramiko's hidden imports (via
+`hook-paramiko.py`, picked up with `--additional-hooks-dir=.`). The
+executable will be created in the `dist` folder.
 
 ---
 
 ## 🚀 Usage
 
 1. **Launch** the application
-2. **Enter** the remote server details:
-   - Server IP address (e.g., 192.168.1.100)
-   - Username
-   - Password
-3. **Click** "Start Bootstrap" or press **Enter**
-4. **Wait** for the process to complete
-5. **Connect** without password: `ssh username@ip`
+2. **Dashboard** - see host/jump-host counts and sync status
+3. **Servers → + Add Server/VM** - Host Alias, Hostname/IP, Username, Port,
+   an existing/new/skipped SSH key, and an optional Jump Host
+4. **Jump Hosts** (optional) - configure a bastion once, reuse it across servers
+5. **SSH Configuration** - view/import/export the generated config, or
+   hand-edit it in advanced mode
+6. **Git Synchronization** (optional) - connect a GitHub repo with a
+   Personal Access Token to back up/restore your configuration
+7. **Connect:** `ssh <alias-you-chose>`
+
+Every change made through the app is validated and written to
+`~/.ssh/config` automatically - manual editing is optional, not required.
 
 ---
 
 ## 📋 Requirements (for running from source)
 
-- Python 3.7+
-- paramiko >= 3.0.0
-- cryptography >= 41.0.0
+See `requirements.txt`: paramiko, cryptography, customtkinter, GitPython,
+keyring, requests.
 
 ---
 
 ## 🔒 Security Notes
 
-- The tool uses SSH key-based authentication (RSA 2048-bit)
-- Private keys are stored in `~/.ssh/` directory
-- Password is only used during initial setup
-- After setup, passwordless SSH authentication is enabled
+- SSH keys (RSA or Ed25519) are generated locally; private keys never leave your computer
+- Private keys are stored in `~/.ssh/` and are never displayed in the UI
+- The optional "Deploy key to server" step sends a password only over the
+  encrypted SSH connection itself, and only for that one operation
+- A connected GitHub Personal Access Token is stored via your OS credential
+  store (`keyring`), never in plain text on disk
 
 ---
 
@@ -97,13 +106,16 @@ The executable will be created in the `dist` folder.
 **"ssh-keygen not found"**
 - Install OpenSSH client on your system
 
-**"Connection refused"**
-- Check if SSH server is running on remote machine
+**"Connection refused" (when deploying a key)**
+- Check if SSH server is running on the remote machine
 - Verify firewall settings
 
-**"Permission denied"**
+**"Permission denied" (when deploying a key)**
 - Verify username and password
-- Check if remote server allows password authentication
+- Check if the remote server allows password authentication
+
+**Git Synchronization: "GitHub authentication failed"**
+- The Personal Access Token needs `repo` scope
 
 ---
 
@@ -120,4 +132,4 @@ This project is open source and available under the MIT License.
 
 ---
 
-**Enjoy passwordless SSH! 🎉**
+**Manage your SSH configuration with confidence. 🎉**

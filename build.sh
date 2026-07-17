@@ -1,10 +1,8 @@
 #!/bin/bash
 # Cross-platform build script for Linux and macOS
-# Developed by M. Usman Sharif & M. Umair Khan
 
 echo "============================================================"
-echo "SSH Bootstrap Tool - Build Script"
-echo "Developed by M. Usman Sharif & M. Umair Khan"
+echo "SSH Configuration Manager - Build Script"
 echo "Platform: $(uname -s)"
 echo "============================================================"
 echo
@@ -36,17 +34,17 @@ python3 -m pip install pyinstaller
 # Build the executable
 echo
 echo "Building executable..."
-pyinstaller --onefile --windowed --name=SSH_Bootstrap_Tool --clean remote_ssh_gui.py
+pyinstaller --onefile --windowed --name=SSH_Configuration_Manager --additional-hooks-dir=. --collect-all=customtkinter --clean --noconfirm main.py
 
 echo
 echo "============================================================"
-if [ -f "dist/SSH_Bootstrap_Tool" ]; then
+if [ -f "dist/SSH_Configuration_Manager" ]; then
     echo "BUILD SUCCESSFUL!"
-    echo "Executable location: dist/SSH_Bootstrap_Tool"
+    echo "Executable location: dist/SSH_Configuration_Manager"
     echo
     echo "Making executable..."
-    chmod +x dist/SSH_Bootstrap_Tool
-    echo "✓ Done!"
+    chmod +x dist/SSH_Configuration_Manager
+    echo "Done!"
 else
     echo "BUILD FAILED!"
 fi

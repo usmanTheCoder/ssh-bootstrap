@@ -36,10 +36,10 @@ python build_debug.py
 
 **Installer file:**
 ```
-installer/SSH_Bootstrap_Tool_Setup_v1.0.0.exe
+installer/SSH_Configuration_Manager_Setup_v2.0.0.exe
 ```
 
-**Size:** ~10-12 MB (compressed)
+**Size:** ~20-25 MB (compressed)
 
 ## Features
 
@@ -51,17 +51,16 @@ installer/SSH_Bootstrap_Tool_Setup_v1.0.0.exe
 ✅ Prerequisites check
 
 ## Installation includes:
-- SSH Bootstrap Tool (main app)
-- SSH Bootstrap Tool Debug (troubleshooting)
+- SSH Configuration Manager (main app)
+- SSH Configuration Manager Debug (troubleshooting)
 - Quick Start Guide
-- Troubleshooting Guide
 - README
 
 ## Testing
 
 ```bash
 # Run the installer
-.\installer\SSH_Bootstrap_Tool_Setup_v1.0.0.exe
+.\installer\SSH_Configuration_Manager_Setup_v2.0.0.exe
 ```
 
 ## Distribution
