@@ -8,6 +8,9 @@ import subprocess
 import sys
 import os
 
+PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+os.chdir(PROJECT_ROOT)
+
 APP_NAME = "SSH_Configuration_Manager_Debug"
 ENTRY_POINT = "main.py"
 
@@ -17,11 +20,14 @@ def build_debug_executable():
     print("\nBuilding DEBUG executable (with console window)...")
 
     command = [
-        "pyinstaller",
+        sys.executable,
+        "-m",
+        "PyInstaller",
         "--onefile",
         # No --windowed: keep the console so errors are visible.
+        # hook-<module>.py in this directory applies when <module> is used).
         f"--name={APP_NAME}",
-        "--additional-hooks-dir=.",
+        "--additional-hooks-dir=scripts",
         "--collect-all=customtkinter",
         "--clean",
         "--noconfirm",

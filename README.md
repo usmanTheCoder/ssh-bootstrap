@@ -75,20 +75,20 @@ Every add/edit/delete you make regenerates and validates `~/.ssh/config` immedia
 
 #### Method 1: Using Python Script
 ```bash
-python build_executable.py
+python scripts/build_executable.py
 ```
 
 #### Method 2: Using Batch File (Windows)
 ```bash
-build.bat
+scripts\build.bat
 ```
 
 #### Method 3: Manual PyInstaller
 ```bash
 pip install pyinstaller
-pyinstaller --onefile --windowed --name=SSH_Configuration_Manager --additional-hooks-dir=. --collect-all=customtkinter --clean main.py
+pyinstaller --onefile --windowed --name=SSH_Configuration_Manager --additional-hooks-dir=scripts --collect-all=customtkinter --clean main.py
 ```
-`--additional-hooks-dir=.` picks up `hook-paramiko.py`; `--collect-all=customtkinter` bundles customtkinter's theme/asset files, which PyInstaller won't find otherwise.
+`--additional-hooks-dir=scripts` picks up `hook-paramiko.py`; `--collect-all=customtkinter` bundles customtkinter's theme/asset files, which PyInstaller won't find otherwise.
 
 The executable will be created in the `dist` folder.
 
@@ -108,10 +108,9 @@ ssh-bootstrap/
 │   ├── git_sync.py               #   GitHub-backed backup/sync
 │   └── ui/                      #   CustomTkinter screens (Dashboard, Servers, Jump Hosts, ...)
 ├── tests/                      # pytest suite for the core engine
-├── remote_ssh_gui.py           # Legacy single-purpose bootstrap tool (superseded by main.py)
-├── remote_ssh_bootstrap_ssh.py # Legacy CLI version
-├── build_executable.py         # Python build script
-├── build.bat / build.sh        # Platform build scripts
+├── docs/                       # Additional documentation (Installation, Quickstart, etc.)
+├── legacy/                     # Legacy scripts (CLI and older GUI)
+├── scripts/                    # Build scripts for executables and installers
 ├── requirements.txt            # Python dependencies
 └── dist/                       # Standalone executable (after building)
 ```

@@ -16,6 +16,8 @@ def _set_identity(repo: git.Repo):
     with repo.config_writer() as cw:
         cw.set_value("user", "name", "Test User")
         cw.set_value("user", "email", "test@example.com")
+        cw.set_value("pull", "rebase", "false")
+
 
 
 @pytest.fixture

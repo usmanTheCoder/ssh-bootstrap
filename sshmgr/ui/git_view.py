@@ -24,7 +24,7 @@ class TokenDialog(ctk.CTkToplevel):
         self.token_entry = ctk.CTkEntry(self, show="*")
         self.token_entry.pack(fill="x", padx=16)
 
-        self.status_label = ctk.CTkLabel(self, text="", text_color="gray60")
+        self.status_label = ctk.CTkLabel(self, text="", text_color=("gray20", "gray75"))
         self.status_label.pack(anchor="w", padx=16, pady=(8, 0))
 
         button_row = ctk.CTkFrame(self, fg_color="transparent")
@@ -57,9 +57,11 @@ class GitSyncScreen(ctk.CTkFrame):
         super().__init__(parent, fg_color="transparent")
         self.app = app
 
-        ctk.CTkLabel(
-            self, text="Git Synchronization", font=ctk.CTkFont(size=22, weight="bold")
-        ).pack(anchor="w", pady=(0, 16))
+        header = ctk.CTkFrame(self, fg_color="transparent")
+        header.pack(fill="x", pady=(0, 12))
+        ctk.CTkLabel(header, text="Git Synchronization", font=ctk.CTkFont(size=22, weight="bold"), text_color=("#111827", "#F9FAFB")).pack(
+            side="left"
+        )
 
         self.container = ctk.CTkFrame(self, fg_color="transparent")
         self.container.pack(fill="both", expand=True)

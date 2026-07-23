@@ -4,10 +4,13 @@ Cross-platform build script for the SSH Configuration Manager.
 Works on Windows, Linux, and macOS.
 """
 
+import os
 import subprocess
 import sys
-import os
 import platform
+
+PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+os.chdir(PROJECT_ROOT)
 
 APP_NAME = "SSH_Configuration_Manager"
 ENTRY_POINT = "main.py"
@@ -32,13 +35,15 @@ def build_executable():
     system = platform.system()
 
     command = [
-        "pyinstaller",
+        sys.executable,
+        "-m",
+        "PyInstaller",
         "--onefile",
         "--windowed",
         f"--name={APP_NAME}",
         # Picks up hook-paramiko.py automatically (PyInstaller convention:
         # hook-<module>.py in this directory applies when <module> is used).
-        "--additional-hooks-dir=.",
+        "--additional-hooks-dir=scripts",
         # customtkinter ships its own theme/asset JSON files that PyInstaller
         # won't find otherwise - collect data+binaries+hiddenimports for it.
         "--collect-all=customtkinter",

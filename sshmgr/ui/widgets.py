@@ -8,6 +8,7 @@ stay modal since they carry text the user must actually read/decide on.
 Both are CTk-styled instead of native tk messageboxes so they look
 consistent across light/dark mode.
 """
+from tkinter import ttk
 import customtkinter as ctk
 
 LEVEL_COLORS = {
@@ -19,6 +20,51 @@ LEVEL_COLORS = {
 LEVEL_ICONS = {"info": "ℹ", "success": "✓", "warning": "⚠", "error": "✕"}
 
 _active_toasts: dict = {}
+
+def style_treeview() -> None:
+    """Applies modern styling to ttk.Treeview based on current CTk theme."""
+    is_light = ctk.get_appearance_mode() == "Light"
+    
+    bg_color = "#F9F9FA" if is_light else "#242424"
+    fg_color = "#242424" if is_light else "#DCE4EE"
+    selected_bg = "#3B82F6" if is_light else "#1F538D"
+    selected_fg = "#FFFFFF"
+    
+    heading_bg = "#E5E7EB" if is_light else "#333333"
+    heading_fg = "#1F2937" if is_light else "#DCE4EE"
+
+    style = ttk.Style()
+    style.theme_use("default")
+    
+    style.configure(
+        "Treeview",
+        background=bg_color,
+        foreground=fg_color,
+        rowheight=35,
+        fieldbackground=bg_color,
+        borderwidth=0,
+        font=("Inter", 11)
+    )
+    
+    style.map(
+        "Treeview",
+        background=[('selected', selected_bg)],
+        foreground=[('selected', selected_fg)]
+    )
+    
+    style.configure(
+        "Treeview.Heading",
+        background=heading_bg,
+        foreground=heading_fg,
+        relief="flat",
+        font=("Inter", 11, "bold"),
+        padding=(0, 5)
+    )
+    
+    style.map(
+        "Treeview.Heading",
+        background=[('active', "#D1D5DB" if is_light else "#444444")]
+    )
 
 
 class Toast(ctk.CTkToplevel):
@@ -52,9 +98,9 @@ class Toast(ctk.CTkToplevel):
         parent.update_idletasks()
         stack = _active_toasts.get(id(parent), [])
         base_x = parent.winfo_rootx() + max(parent.winfo_width() - self.WIDTH - 20, 0)
-        base_y = parent.winfo_rooty() + parent.winfo_height() - 20
+        base_y = parent.winfo_rooty() + 20
         for index, toast in enumerate(reversed(stack)):
-            y = base_y - (self.HEIGHT + self.GAP) * (index + 1)
+            y = base_y + (self.HEIGHT + self.GAP) * index
             toast.geometry(f"{self.WIDTH}x{self.HEIGHT}+{base_x}+{y}")
 
     def _dismiss(self):

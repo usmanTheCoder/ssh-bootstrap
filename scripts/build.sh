@@ -7,6 +7,9 @@ echo "Platform: $(uname -s)"
 echo "============================================================"
 echo
 
+# Change to project root
+cd "$(dirname "$0")/.."
+
 # Check if Python is installed
 if ! command -v python3 &> /dev/null; then
     echo "Error: Python 3 is not installed"
@@ -34,7 +37,7 @@ python3 -m pip install pyinstaller
 # Build the executable
 echo
 echo "Building executable..."
-pyinstaller --onefile --windowed --name=SSH_Configuration_Manager --additional-hooks-dir=. --collect-all=customtkinter --clean --noconfirm main.py
+pyinstaller --onefile --windowed --name=SSH_Configuration_Manager --additional-hooks-dir=scripts --collect-all=customtkinter --clean --noconfirm main.py
 
 echo
 echo "============================================================"

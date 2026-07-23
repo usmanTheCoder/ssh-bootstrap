@@ -12,10 +12,10 @@ from sshmgr.ui.widgets import notify_error, notify_success, notify_warning
 
 class _StatCard(ctk.CTkFrame):
     def __init__(self, parent, title: str):
-        super().__init__(parent, corner_radius=10)
-        self.value_label = ctk.CTkLabel(self, text="0", font=ctk.CTkFont(size=28, weight="bold"))
+        super().__init__(parent, corner_radius=10, fg_color=("#FFFFFF", "#2B2B2B"))
+        self.value_label = ctk.CTkLabel(self, text="0", font=ctk.CTkFont(size=28, weight="bold"), text_color=("#111827", "#F9FAFB"))
         self.value_label.pack(pady=(16, 0))
-        ctk.CTkLabel(self, text=title, text_color="gray60").pack(pady=(0, 16))
+        ctk.CTkLabel(self, text=title, text_color=("#6B7280", "#9CA3AF")).pack(pady=(0, 16))
 
     def set_value(self, value: str):
         self.value_label.configure(text=value)
@@ -26,7 +26,7 @@ class DashboardScreen(ctk.CTkFrame):
         super().__init__(parent, fg_color="transparent")
         self.app = app
 
-        ctk.CTkLabel(self, text="Dashboard", font=ctk.CTkFont(size=22, weight="bold")).pack(
+        ctk.CTkLabel(self, text="Dashboard", font=ctk.CTkFont(size=22, weight="bold"), text_color=("#111827", "#F9FAFB")).pack(
             anchor="w", pady=(0, 16)
         )
 
@@ -47,7 +47,7 @@ class DashboardScreen(ctk.CTkFrame):
         self.last_sync_card = _StatCard(cards_row, "Last Synchronized")
         self.last_sync_card.grid(row=0, column=3, padx=6, sticky="ew")
 
-        ctk.CTkLabel(self, text="Quick Actions", font=ctk.CTkFont(size=16, weight="bold")).pack(
+        ctk.CTkLabel(self, text="Quick Actions", font=ctk.CTkFont(size=16, weight="bold"), text_color=("#111827", "#F9FAFB")).pack(
             anchor="w", pady=(10, 10)
         )
 

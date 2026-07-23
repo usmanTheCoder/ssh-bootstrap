@@ -205,3 +205,22 @@ def test_write_raw_rejects_invalid_text_without_touching_disk(tmp_path):
         ssh_config.write_raw(bad_text, config_path=config_path)
 
     assert config_path.read_text(encoding="utf-8") == original
+
+
+def test_import_existing_empty_config(tmp_path):
+    config_path = tmp_path / "empty_config"
+    config_path.write_text("", encoding="utf-8")
+    servers, jump_hosts, keys = ssh_config.import_existing(config_path)
+    assert len(servers) == 0
+    assert len(jump_hosts) == 0
+    assert len(keys) == 0
+
+
+def test_import_existing_invalid_config(tmp_path):
+    # import_existing is a best-effort parser, it skips bad lines.
+    config_path = tmp_path / "invalid_config"
+    config_path.write_text("Just some random text\nHost \n    Port asdf\n", encoding="utf-8")
+    servers, jump_hosts, keys = ssh_config.import_existing(config_path)
+    # It might create an empty server if Host has no alias, or just skip it depending on implementation.
+    # The main verification is it doesn't crash.
+    assert isinstance(servers, list)

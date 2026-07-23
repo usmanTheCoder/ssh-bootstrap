@@ -105,3 +105,26 @@ def test_persistence_round_trip(tmp_path):
     store2 = AppStore(path=path)
     assert store2.servers["web1"].key_name == "id_rsa"
     assert store2.keys["id_rsa"].private_key_path == "/x/id_rsa"
+
+
+def test_add_server_skip_key(store):
+    # Verify a server can be created without generating or providing a new key
+    store.add_server(Server(alias="no_key_server", hostname="1.2.3.4", username="root", key_name=None))
+    assert store.servers["no_key_server"].key_name is None
+
+
+def test_edge_cases_long_alias(store):
+    long_alias = "a" * 300
+    store.add_server(Server(alias=long_alias, hostname="1.2.3.4", username="root"))
+    assert store.servers[long_alias].alias == long_alias
+
+
+def test_edge_cases_ipv6(store):
+    store.add_server(Server(alias="ipv6_server", hostname="2001:0db8:85a3:0000:0000:8a2e:0370:7334", username="root"))
+    assert store.servers["ipv6_server"].hostname == "2001:0db8:85a3:0000:0000:8a2e:0370:7334"
+
+
+def test_edge_cases_special_chars_in_username(store):
+    store.add_server(Server(alias="special_user", hostname="1.2.3.4", username="user.name+test@domain.com"))
+    assert store.servers["special_user"].username == "user.name+test@domain.com"
+

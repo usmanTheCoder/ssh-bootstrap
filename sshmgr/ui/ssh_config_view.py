@@ -28,7 +28,7 @@ class SSHConfigScreen(ctk.CTkFrame):
         header = ctk.CTkFrame(self, fg_color="transparent")
         header.pack(fill="x", pady=(0, 12))
         ctk.CTkLabel(
-            header, text="SSH Configuration", font=ctk.CTkFont(size=22, weight="bold")
+            header, text="SSH Configuration", font=ctk.CTkFont(size=22, weight="bold"), text_color=("#111827", "#F9FAFB")
         ).pack(side="left")
 
         button_row = ctk.CTkFrame(self, fg_color="transparent")
@@ -47,7 +47,7 @@ class SSHConfigScreen(ctk.CTkFrame):
         self.save_button.pack(side="left")
         self.save_button.configure(state="disabled")
 
-        self.info_label = ctk.CTkLabel(self, text="", text_color="gray60")
+        self.info_label = ctk.CTkLabel(self, text="", text_color=("gray20", "gray75"))
         self.info_label.pack(anchor="w", pady=(0, 6))
 
         self.text_box = ctk.CTkTextbox(self, wrap="none", font=("Consolas", 12))

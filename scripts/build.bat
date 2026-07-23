@@ -4,6 +4,9 @@ echo SSH Configuration Manager - Build Script
 echo ============================================================
 echo.
 
+REM Change to project root
+cd /d "%~dp0.."
+
 REM Activate virtual environment if it exists
 if exist venv\Scripts\activate.bat (
     echo Activating virtual environment...
@@ -19,7 +22,7 @@ python -m pip install pyinstaller
 REM Build the executable
 echo.
 echo Building executable...
-pyinstaller --onefile --windowed --name=SSH_Configuration_Manager --additional-hooks-dir=. --collect-all=customtkinter --clean --noconfirm main.py
+pyinstaller --onefile --windowed --name=SSH_Configuration_Manager --additional-hooks-dir=scripts --collect-all=customtkinter --clean --noconfirm main.py
 
 echo.
 echo ============================================================

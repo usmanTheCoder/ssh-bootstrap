@@ -226,7 +226,7 @@ class ServersScreen(ctk.CTkFrame):
 
         header = ctk.CTkFrame(self, fg_color="transparent")
         header.pack(fill="x", pady=(0, 12))
-        ctk.CTkLabel(header, text="Servers", font=ctk.CTkFont(size=22, weight="bold")).pack(
+        ctk.CTkLabel(header, text="Servers", font=ctk.CTkFont(size=22, weight="bold"), text_color=("#111827", "#F9FAFB")).pack(
             side="left"
         )
         ctk.CTkButton(header, text="+ Add Server/VM", command=self.open_add_dialog).pack(

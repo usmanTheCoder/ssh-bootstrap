@@ -102,6 +102,42 @@ def _check_duplicate_aliases(store: AppStore) -> None:
         seen.add(alias)
 
 
+def _strip_managed_hosts(text: str, store: AppStore) -> str:
+    """Remove manual Host blocks that are now managed by the app to prevent duplicates."""
+    managed_aliases = {jh.name for jh in store.list_jump_hosts()} | {s.alias for s in store.list_servers()}
+    
+    lines = text.splitlines()
+    out_lines = []
+    
+    skip_current_block = False
+    for line in lines:
+        stripped = line.strip()
+        if stripped.lower().startswith("host ") or stripped.lower().startswith("match "):
+            if stripped.lower().startswith("match "):
+                skip_current_block = False
+            else:
+                parts = stripped.split()
+                aliases = parts[1:]
+                unmanaged = [a for a in aliases if a not in managed_aliases]
+                if not unmanaged:
+                    # All aliases in this block are managed by the app, strip the whole block
+                    skip_current_block = True
+                    continue
+                else:
+                    # Keep only the unmanaged aliases on this line
+                    skip_current_block = False
+                    prefix = line[:len(line) - len(line.lstrip())] + parts[0]
+                    out_lines.append(f"{prefix} {' '.join(unmanaged)}")
+                    continue
+                    
+        if not skip_current_block:
+            out_lines.append(line)
+            
+    # Clean up excessive blank lines created by stripping
+    cleaned = "\n".join(out_lines)
+    return re.sub(r'\n{3,}', '\n\n', cleaned)
+
+
 def merge_into_full_config(existing_text: str, store: AppStore) -> str:
     """Replace the managed block inside existing_text, preserving everything
     else. If no managed block exists yet, append one.
@@ -118,12 +154,15 @@ def merge_into_full_config(existing_text: str, store: AppStore) -> str:
 
     pattern = re.compile(re.escape(MARK_START) + r".*?" + re.escape(MARK_END), re.DOTALL)
     if pattern.search(existing_text):
-        new_text = pattern.sub(lambda _m: managed, existing_text)
+        manual_text = pattern.sub("", existing_text)
     else:
-        sep = "\n\n" if existing_text.strip() else ""
-        new_text = existing_text.rstrip("\n") + sep + managed
+        manual_text = existing_text
+        
+    cleaned_manual = _strip_managed_hosts(manual_text, store)
+    
+    sep = "\n\n" if cleaned_manual.strip() else ""
+    new_text = cleaned_manual.rstrip("\n") + sep + managed
     return new_text if new_text.endswith("\n") else new_text + "\n"
-
 
 def validate(text: str) -> list[str]:
     """Return a list of human-readable problems; empty list means valid."""
@@ -140,8 +179,6 @@ def validate(text: str) -> list[str]:
                 if alias in seen:
                     problems.append(f"Duplicate Host entry: '{alias}'")
                 seen.add(alias)
-
-    for line in text.splitlines():
         stripped = line.strip()
         if stripped.lower().startswith("port "):
             value = stripped.split(None, 1)[1].strip()
@@ -232,7 +269,16 @@ def _parse_raw_entries(text: str) -> list[dict]:
     return entries
 
 
-def import_existing(path) -> tuple[list[Server], list[JumpHost], list[SSHKey]]:
+def write_raw(text: str) -> None:
+    """Overwrite the SSH configuration file completely with the provided text.
+    This is used by the advanced manual-edit mode.
+    """
+    path = default_config_path()
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(text, encoding="utf-8")
+
+
+def import_existing(path: str) -> tuple[list[Server], list[JumpHost], list[SSHKey]]:
     """Parse an arbitrary SSH config file into model objects. A Host used as
     another entry's ProxyJump target is inferred to be a Jump Host.
     """

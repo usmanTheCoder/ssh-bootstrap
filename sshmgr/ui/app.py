@@ -18,21 +18,11 @@ from sshmgr.ui.dashboard import DashboardScreen
 from sshmgr.ui.servers import ServersScreen
 from sshmgr.ui.jump_hosts import JumpHostsScreen
 from sshmgr.ui.keys_view import KeysScreen
+from sshmgr.ui.settings import SettingsScreen
 from sshmgr.ui.ssh_config_view import SSHConfigScreen
 from sshmgr.ui.git_view import GitSyncScreen
 
 ctk.set_default_color_theme("blue")
-
-
-class ComingSoonScreen(ctk.CTkFrame):
-    def __init__(self, parent, app, name: str):
-        super().__init__(parent)
-        ctk.CTkLabel(
-            self, text=f"{name}", font=ctk.CTkFont(size=20, weight="bold")
-        ).pack(pady=(40, 10))
-        ctk.CTkLabel(
-            self, text="Coming in a later phase.", text_color="gray60"
-        ).pack()
 
 
 class MainApp(ctk.CTk):
@@ -49,8 +39,15 @@ class MainApp(ctk.CTk):
     def __init__(self):
         super().__init__()
         self.store = AppStore()
-
+        
+        # Apply the user's saved theme preference
         ctk.set_appearance_mode(self.store.settings.theme)
+        
+        # Style treeviews based on theme
+        from sshmgr.ui.widgets import style_treeview
+        style_treeview()
+
+        # Handle UI scaling based on OS
 
         self.title("SSH Configuration Manager")
         self.geometry("1000x650")
@@ -69,15 +66,17 @@ class MainApp(ctk.CTk):
         self.screens = {}
         self._register_screens()
         self.show_screen("dashboard")
+        
+        self.after(500, self._check_first_run_import)
 
     # ------------------------------------------------------------- sidebar
     def _build_sidebar(self):
-        sidebar = ctk.CTkFrame(self, width=200, corner_radius=0)
+        sidebar = ctk.CTkFrame(self, width=200, corner_radius=0, fg_color=("#F3F4F6", "#212121"))
         sidebar.grid(row=0, column=0, sticky="nsw")
         sidebar.grid_rowconfigure(len(self.NAV_ITEMS) + 1, weight=1)
 
         ctk.CTkLabel(
-            sidebar, text="SSH Manager", font=ctk.CTkFont(size=18, weight="bold")
+            sidebar, text="SSH Manager", font=ctk.CTkFont(size=18, weight="bold"), text_color=("#111827", "#F9FAFB")
         ).grid(row=0, column=0, padx=20, pady=(20, 10), sticky="w")
 
         self.nav_buttons = {}
@@ -87,6 +86,8 @@ class MainApp(ctk.CTk):
                 text=label,
                 anchor="w",
                 fg_color="transparent",
+                text_color=("#4B5563", "#D1D5DB"),
+                hover_color=("#E5E7EB", "#2B2B2B"),
                 command=lambda k=key: self.show_screen(k),
             )
             btn.grid(row=i, column=0, padx=10, pady=4, sticky="ew")
@@ -105,6 +106,8 @@ class MainApp(ctk.CTk):
         new_theme = "dark" if ctk.get_appearance_mode() == "Light" else "light"
         ctk.set_appearance_mode(new_theme)
         self.store.update_settings(theme=new_theme)
+        from sshmgr.ui.widgets import style_treeview
+        style_treeview()
 
     # ------------------------------------------------------------- screens
     def _register_screens(self):
@@ -114,7 +117,7 @@ class MainApp(ctk.CTk):
         self.screens["keys"] = KeysScreen(self.content, self)
         self.screens["ssh_config"] = SSHConfigScreen(self.content, self)
         self.screens["git_sync"] = GitSyncScreen(self.content, self)
-        self.screens["settings"] = ComingSoonScreen(self.content, self, "Settings")
+        self.screens["settings"] = SettingsScreen(self.content, self)
 
         for screen in self.screens.values():
             screen.grid(row=0, column=0, sticky="nsew")
@@ -125,7 +128,10 @@ class MainApp(ctk.CTk):
         if hasattr(screen, "on_show"):
             screen.on_show()
         for nav_key, btn in self.nav_buttons.items():
-            btn.configure(fg_color=("gray75", "gray25") if nav_key == key else "transparent")
+            if nav_key == key:
+                btn.configure(fg_color=("#E5E7EB", "#374151"), text_color=("#111827", "#F9FAFB"))
+            else:
+                btn.configure(fg_color="transparent", text_color=("#4B5563", "#D1D5DB"))
 
     # ------------------------------------------------------ config syncing
     def import_config_file(self, path) -> tuple[int, int]:
@@ -275,6 +281,33 @@ class MainApp(ctk.CTk):
             return
         self.push_to_git("Manual synchronization", on_complete=self.refresh_all_screens)
 
+    def _check_first_run_import(self):
+        """Prompt to import ~/.ssh/config if the app database is completely empty."""
+        if len(self.store.list_servers()) > 0 or len(self.store.list_jump_hosts()) > 0:
+            return
+            
+        default_path = ssh_config.default_config_path()
+        if not default_path.exists() or default_path.stat().st_size == 0:
+            return
+            
+        if messagebox.askyesno(
+            "Import Existing Configuration",
+            f"We noticed you have an existing SSH configuration at:\n{default_path}\n\n"
+            "Would you like to import it into the manager now?"
+        ):
+            try:
+                imported, skipped = self.import_config_file(str(default_path))
+                self.sync_ssh_config()
+                if imported > 0:
+                    notify_success(
+                        self, 
+                        "Import Complete", 
+                        f"Successfully imported {imported} entries."
+                    )
+                    if "dashboard" in self.screens:
+                        self.screens["dashboard"].refresh()
+            except Exception as e:
+                notify_error(self, "Import Failed", f"Could not parse configuration:\n{e}")
 
 def run():
     app = MainApp()
