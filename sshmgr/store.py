@@ -7,12 +7,15 @@ calling ssh_config.write(store) after any mutation here so the two never
 drift apart.
 """
 import json
+import logging
 import os
 import tempfile
 from pathlib import Path
 from typing import Optional
 
 from sshmgr.models import Server, JumpHost, SSHKey, Settings
+
+logger = logging.getLogger(__name__)
 
 DEFAULT_STORE_PATH = Path.home() / ".ssh-bootstrap-manager" / "data.json"
 
@@ -45,6 +48,7 @@ class AppStore:
             k["name"]: SSHKey.from_dict(k) for k in data.get("keys", [])
         }
         self.settings = Settings.from_dict(data.get("settings", {}))
+        logger.debug(f"Loaded store from {self.path}")
 
     def save(self) -> None:
         self.path.parent.mkdir(parents=True, exist_ok=True)
@@ -64,6 +68,7 @@ class AppStore:
         finally:
             if os.path.exists(tmp_path):
                 os.remove(tmp_path)
+        logger.debug(f"Saved store to {self.path}")
 
     # ----------------------------------------------------------- servers
     def list_servers(self) -> list[Server]:

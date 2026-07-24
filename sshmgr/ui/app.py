@@ -50,8 +50,8 @@ class MainApp(ctk.CTk):
         # Handle UI scaling based on OS
 
         self.title("SSH Configuration Manager")
-        self.geometry("1000x650")
-        self.minsize(860, 560)
+        self.geometry("1050x650")
+        self.minsize(950, 600)
 
         self.grid_columnconfigure(1, weight=1)
         self.grid_rowconfigure(0, weight=1)

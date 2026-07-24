@@ -12,7 +12,10 @@ Note IdentityFile paths inside it are whatever this machine's paths are;
 restoring onto a different machine still requires re-pointing keys there,
 same limitation as any raw ssh config.
 """
+import json
+import os
 import shutil
+import stat
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Callable, Optional
@@ -21,12 +24,16 @@ import git
 import keyring
 import requests
 
+import logging
 from sshmgr import ssh_config
 from sshmgr.store import AppStore
+from sshmgr.models import Server, JumpHost, SSHKey, Settings
+
+logger = logging.getLogger(__name__)
 
 SERVICE_NAME = "ssh-bootstrap-manager"
 TOKEN_KEY = "github-pat"
-REPO_CONFIG_FILENAME = "ssh_config"
+REPO_CONFIG_FILENAME = "data.json"
 
 ProgressFn = Callable[[str, str], None]
 
@@ -51,6 +58,18 @@ def default_local_repo_path() -> Path:
 
 def _now_iso() -> str:
     return datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
+
+
+def _force_rmtree(path: Path) -> None:
+    def remove_readonly(func, path_str, _):
+        try:
+            os.chmod(path_str, stat.S_IWRITE)
+            func(path_str)
+        except Exception as e:
+            logger.warning(f"Failed to remove {path_str}: {e}")
+
+    if path.exists():
+        shutil.rmtree(path, onerror=remove_readonly)
 
 
 # --------------------------------------------------------------- token
@@ -127,8 +146,7 @@ def connect_existing(
 ) -> None:
     """Clone an existing (possibly non-empty) repo as the local working copy."""
     path = local_path or default_local_repo_path()
-    if path.exists():
-        shutil.rmtree(path)
+    _force_rmtree(path)
     path.parent.mkdir(parents=True, exist_ok=True)
 
     token = get_token()
@@ -136,8 +154,13 @@ def connect_existing(
     on_progress(f"Cloning {url}...", "info")
     try:
         git.Repo.clone_from(clone_url, path)
+        logger.info(f"Successfully cloned repository from {url}")
     except git.exc.GitCommandError as e:
-        raise GitSyncError(f"Clone failed: {e}")
+        logger.error(f"Clone failed for {url}: {e}")
+        err_str = str(e).lower()
+        if "authentication failed" in err_str or "could not read username" in err_str or "403" in err_str:
+            raise GitSyncError("Clone failed: Authentication error. Please check your GitHub Personal Access Token.")
+        raise GitSyncError("Clone failed: Could not connect to the repository. Please check the URL and your internet connection.")
 
     store.update_settings(git_repo_url=url)
     on_progress("Repository connected.", "success")
@@ -159,14 +182,20 @@ def init_new(
 
 def disconnect(store: AppStore, local_path: Optional[Path] = None) -> None:
     path = local_path or default_local_repo_path()
-    if path.exists():
-        shutil.rmtree(path)
+    _force_rmtree(path)
     store.update_settings(git_repo_url=None, last_sync_timestamp=None)
 
 
 # -------------------------------------------------------------- push/pull
 def _write_repo_config(store: AppStore, repo: git.Repo) -> None:
-    ssh_config.export(store, Path(repo.working_tree_dir) / REPO_CONFIG_FILENAME)
+    data = {
+        "servers": [s.to_dict() for s in store.servers.values()],
+        "jump_hosts": [j.to_dict() for j in store.jump_hosts.values()],
+        "keys": [k.to_dict() for k in store.keys.values()],
+        "settings": store.settings.to_dict(),
+    }
+    path = Path(repo.working_tree_dir) / REPO_CONFIG_FILENAME
+    path.write_text(json.dumps(data, indent=2), encoding="utf-8")
 
 
 def _push_with_retry(repo: git.Repo, on_progress: ProgressFn = _noop) -> None:
@@ -186,16 +215,24 @@ def _push_with_retry(repo: git.Repo, on_progress: ProgressFn = _noop) -> None:
         _with_authed_remote(repo, _push)
     except git.exc.GitCommandError as e:
         if "non-fast-forward" not in str(e) and "rejected" not in str(e):
-            raise GitSyncError(f"Push failed: {e}")
+            logger.error(f"Push failed (GitCommandError): {e}")
+            raise GitSyncError(
+                "An unexpected error occurred while pushing.\n\n"
+                "If this persists, your local Git cache may be corrupted. "
+                "You can safely fix this by going to the Git Synchronization tab, clicking 'Disconnect', and reconnecting."
+            )
+        logger.warning("Push rejected due to non-fast-forward. Retrying after fetch.")
         on_progress("Remote has newer commits - fetching and retrying...", "warning")
         try:
             _with_authed_remote(repo, lambda origin: origin.fetch())
             repo.git.merge(f"origin/{branch}", "--ff-only")
             _with_authed_remote(repo, _push)
+            logger.info("Push successful after fetch and fast-forward.")
         except git.exc.GitCommandError as retry_error:
+            logger.error(f"Push rejected permanently after retry: {retry_error}")
             raise GitSyncError(
-                f"Push rejected - the remote has changes not in your local copy. "
-                f"Pull first, then push again. ({retry_error})"
+                "Push rejected - the remote repository has changes that are not in your local copy.\n\n"
+                "Please pull the latest changes from the Git Synchronization tab first, and then try pushing again."
             )
 
 
@@ -240,23 +277,33 @@ def pull_changes(
 
     on_progress("Pulling from remote...", "info")
     try:
+        with repo.config_writer() as w:
+            w.set_value("pull", "rebase", "false")
         _with_authed_remote(repo, lambda origin: origin.pull())
+        logger.info("Successfully pulled from remote.")
     except git.exc.GitCommandError as e:
         unmerged = repo.index.unmerged_blobs()
         if unmerged:
+            logger.warning(f"Merge conflict while pulling: {list(unmerged.keys())}")
             raise ConflictError("Merge conflict while pulling.", list(unmerged.keys()))
-        raise GitSyncError(f"Pull failed: {e}")
+        logger.error(f"Pull failed (GitCommandError): {e}")
+        raise GitSyncError(
+            "An unexpected error occurred while pulling.\n\n"
+            "If this persists, your local Git cache may be corrupted. "
+            "You can safely fix this by clicking 'Disconnect' and then reconnecting your repository."
+        )
 
     repo_config_path = Path(repo.working_tree_dir) / REPO_CONFIG_FILENAME
     added = updated = removed = 0
     if repo_config_path.exists():
-        servers, jump_hosts, keys = ssh_config.import_existing(repo_config_path)
+        data = json.loads(repo_config_path.read_text(encoding="utf-8"))
 
-        for key in keys:
-            if key.name not in store.keys:
-                store.keys[key.name] = key
+        new_keys = {k["name"]: SSHKey.from_dict(k) for k in data.get("keys", [])}
+        for k_name, k in new_keys.items():
+            if k_name not in store.keys:
+                store.keys[k_name] = k
 
-        new_jump_hosts = {jh.name: jh for jh in jump_hosts}
+        new_jump_hosts = {j["name"]: JumpHost.from_dict(j) for j in data.get("jump_hosts", [])}
         for name in list(store.jump_hosts):
             if name not in new_jump_hosts:
                 del store.jump_hosts[name]
@@ -268,7 +315,7 @@ def pull_changes(
                 updated += 1
             store.jump_hosts[name] = jh
 
-        new_servers = {s.alias: s for s in servers}
+        new_servers = {s["alias"]: Server.from_dict(s) for s in data.get("servers", [])}
         for alias in list(store.servers):
             if alias not in new_servers:
                 del store.servers[alias]
@@ -279,6 +326,12 @@ def pull_changes(
             elif store.servers[alias] != s:
                 updated += 1
             store.servers[alias] = s
+            
+        if "settings" in data:
+            new_settings = Settings.from_dict(data["settings"])
+            current_url = store.settings.git_repo_url
+            store.settings = new_settings
+            store.settings.git_repo_url = current_url
 
         store.save()
 
@@ -319,24 +372,36 @@ def restore_on_new_machine(
     if not repo_config_path.exists():
         return 0, 0
 
-    servers, jump_hosts, keys = ssh_config.import_existing(repo_config_path)
+    data = json.loads(repo_config_path.read_text(encoding="utf-8"))
+    
+    new_keys = [SSHKey.from_dict(k) for k in data.get("keys", [])]
+    new_jump_hosts = [JumpHost.from_dict(j) for j in data.get("jump_hosts", [])]
+    new_servers = [Server.from_dict(s) for s in data.get("servers", [])]
+
     imported, skipped = 0, 0
-    for key in keys:
+    for key in new_keys:
         if key.name not in store.keys:
             store.keys[key.name] = key
             imported += 1
-    for jh in jump_hosts:
+    for jh in new_jump_hosts:
         if jh.name not in store.jump_hosts:
             store.jump_hosts[jh.name] = jh
             imported += 1
         else:
             skipped += 1
-    for server in servers:
+    for server in new_servers:
         if server.alias not in store.servers:
             store.servers[server.alias] = server
             imported += 1
         else:
             skipped += 1
+
+    if "settings" in data:
+        new_settings = Settings.from_dict(data["settings"])
+        current_url = store.settings.git_repo_url
+        store.settings = new_settings
+        store.settings.git_repo_url = current_url
+
     store.save()
     on_progress(f"Restored {imported} entr{'y' if imported == 1 else 'ies'}.", "success")
     return imported, skipped

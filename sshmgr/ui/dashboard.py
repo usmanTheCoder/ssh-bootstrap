@@ -1,3 +1,4 @@
+from datetime import datetime, timezone
 import os
 import platform
 import subprocess
@@ -10,15 +11,44 @@ from sshmgr import git_sync
 from sshmgr.ui.widgets import notify_error, notify_success, notify_warning
 
 
+def _format_local_time(utc_str: str) -> str:
+    if not utc_str or not utc_str.endswith(" UTC"):
+        return utc_str
+    try:
+        dt = datetime.strptime(utc_str, "%Y-%m-%d %H:%M:%S UTC")
+        dt = dt.replace(tzinfo=timezone.utc)
+        local_dt = dt.astimezone()
+        # Use a newline to prevent horizontal overflow in the stat card
+        return local_dt.strftime('%Y-%m-%d\n%I:%M %p')
+    except Exception:
+        return utc_str
+
+
 class _StatCard(ctk.CTkFrame):
     def __init__(self, parent, title: str):
         super().__init__(parent, corner_radius=10, fg_color=("#FFFFFF", "#2B2B2B"))
-        self.value_label = ctk.CTkLabel(self, text="0", font=ctk.CTkFont(size=28, weight="bold"), text_color=("#111827", "#F9FAFB"))
-        self.value_label.pack(pady=(16, 0))
-        ctk.CTkLabel(self, text=title, text_color=("#6B7280", "#9CA3AF")).pack(pady=(0, 16))
+        
+        # Inner frame to keep items vertically centered
+        self.inner = ctk.CTkFrame(self, fg_color="transparent")
+        self.inner.pack(expand=True, fill="both", padx=10, pady=16)
+        
+        self.value_label = ctk.CTkLabel(
+            self.inner, text="0", font=ctk.CTkFont(size=28, weight="bold"), text_color=("#111827", "#F9FAFB")
+        )
+        self.value_label.pack(expand=True)
+        
+        self.title_label = ctk.CTkLabel(
+            self.inner, text=title, text_color=("#6B7280", "#9CA3AF"), font=ctk.CTkFont(size=12)
+        )
+        self.title_label.pack()
 
-    def set_value(self, value: str):
-        self.value_label.configure(text=value)
+    def set_value(self, value: str, color: str = None):
+        font_size = 18 if len(value) > 12 else 24 if len(value) > 8 else 28
+        self.value_label.configure(
+            text=value, 
+            font=ctk.CTkFont(size=font_size, weight="bold"),
+            text_color=color if color else ("#111827", "#F9FAFB")
+        )
 
 
 class DashboardScreen(ctk.CTkFrame):
@@ -35,17 +65,17 @@ class DashboardScreen(ctk.CTkFrame):
         for i in range(4):
             cards_row.grid_columnconfigure(i, weight=1)
 
-        self.servers_card = _StatCard(cards_row, "Configured SSH Hosts")
-        self.servers_card.grid(row=0, column=0, padx=6, sticky="ew")
+        self.servers_card = _StatCard(cards_row, "SSH Hosts")
+        self.servers_card.grid(row=0, column=0, padx=6, sticky="nsew")
 
-        self.jump_hosts_card = _StatCard(cards_row, "Configured Jump Hosts")
-        self.jump_hosts_card.grid(row=0, column=1, padx=6, sticky="ew")
+        self.jump_hosts_card = _StatCard(cards_row, "Jump Hosts")
+        self.jump_hosts_card.grid(row=0, column=1, padx=6, sticky="nsew")
 
         self.sync_status_card = _StatCard(cards_row, "Sync Status")
-        self.sync_status_card.grid(row=0, column=2, padx=6, sticky="ew")
+        self.sync_status_card.grid(row=0, column=2, padx=6, sticky="nsew")
 
         self.last_sync_card = _StatCard(cards_row, "Last Synchronized")
-        self.last_sync_card.grid(row=0, column=3, padx=6, sticky="ew")
+        self.last_sync_card.grid(row=0, column=3, padx=6, sticky="nsew")
 
         ctk.CTkLabel(self, text="Quick Actions", font=ctk.CTkFont(size=16, weight="bold"), text_color=("#111827", "#F9FAFB")).pack(
             anchor="w", pady=(10, 10)
@@ -67,6 +97,21 @@ class DashboardScreen(ctk.CTkFrame):
         ctk.CTkButton(actions_row, text="Open SSH Config", command=self._open_ssh_config).pack(
             side="left"
         )
+        
+        # --- Config Preview Section ---
+        preview_header = ctk.CTkFrame(self, fg_color="transparent")
+        preview_header.pack(fill="x", pady=(24, 8))
+        
+        ctk.CTkLabel(preview_header, text="Configuration Preview", font=ctk.CTkFont(size=16, weight="bold"), text_color=("#111827", "#F9FAFB")).pack(side="left")
+        ctk.CTkLabel(preview_header, text="(~/.ssh/config)", font=ctk.CTkFont(size=12), text_color=("#6B7280", "#9CA3AF")).pack(side="left", padx=8)
+
+        self.preview_box = ctk.CTkTextbox(
+            self, font=ctk.CTkFont(family="Consolas", size=13),
+            fg_color=("#F9FAFB", "#1F1F1F"), border_width=1, border_color=("#E5E7EB", "#333333"),
+            corner_radius=8, wrap="none"
+        )
+        self.preview_box.pack(fill="both", expand=True, pady=(0, 10))
+        self.preview_box.configure(state="disabled")
 
     def on_show(self):
         self.refresh()
@@ -75,11 +120,31 @@ class DashboardScreen(ctk.CTkFrame):
         store = self.app.store
         self.servers_card.set_value(str(len(store.list_servers())))
         self.jump_hosts_card.set_value(str(len(store.list_jump_hosts())))
+        
         connected = git_sync.is_connected(store)
-        self.sync_status_card.set_value("Connected" if connected else "Not configured")
+        if connected:
+            self.sync_status_card.set_value("Connected", color=("#10b981", "#34d399"))  # Green
+        else:
+            self.sync_status_card.set_value("Not Configured", color=("#ef4444", "#f87171"))  # Red
+            
         self.sync_button.configure(state="normal" if connected else "disabled")
+        
         last_sync = store.settings.last_sync_timestamp
-        self.last_sync_card.set_value(last_sync if last_sync else "Never")
+        self.last_sync_card.set_value(_format_local_time(last_sync) if last_sync else "Never")
+
+        # Refresh preview
+        self.preview_box.configure(state="normal")
+        self.preview_box.delete("1.0", "end")
+        config_path = ssh_config.default_config_path()
+        if config_path.exists():
+            try:
+                content = config_path.read_text(encoding="utf-8")
+                self.preview_box.insert("end", content)
+            except Exception as e:
+                self.preview_box.insert("end", f"Error reading config: {e}")
+        else:
+            self.preview_box.insert("end", "No SSH config file found yet. Add some servers to generate one!")
+        self.preview_box.configure(state="disabled")
 
     def _add_server(self):
         self.app.show_screen("servers")

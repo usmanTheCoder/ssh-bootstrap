@@ -10,10 +10,13 @@ import tempfile
 from pathlib import Path
 from typing import Optional
 
+import logging
 import paramiko
 
 from sshmgr.models import Server, JumpHost, SSHKey
 from sshmgr.store import AppStore
+
+logger = logging.getLogger(__name__)
 
 MARK_START = "# >>> ssh-bootstrap-manager managed block >>>"
 MARK_END = "# <<< ssh-bootstrap-manager managed block <<<"
@@ -201,6 +204,7 @@ def _validate_and_atomic_write(new_text: str, path: Path) -> str:
     """
     problems = validate(new_text)
     if problems:
+        logger.error(f"Validation failed before atomic write: {'; '.join(problems)}")
         raise SSHConfigError("; ".join(problems))
 
     path.parent.mkdir(mode=0o700, parents=True, exist_ok=True)
@@ -220,6 +224,8 @@ def _validate_and_atomic_write(new_text: str, path: Path) -> str:
 
     if os.name != "nt":
         os.chmod(path, 0o600)
+        
+    logger.info(f"Successfully wrote SSH configuration to {path}")
 
     return new_text
 

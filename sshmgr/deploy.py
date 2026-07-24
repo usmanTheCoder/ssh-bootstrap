@@ -4,6 +4,7 @@ upload_ssh_key()/test_ssh_connection(), which were hardcoded to id_rsa and
 tightly coupled to the old single-screen GUI. Used from the Add Server
 wizard as an optional step, not a mandatory one.
 """
+import logging
 import platform
 import socket
 import subprocess
@@ -12,6 +13,8 @@ from typing import Callable, Optional
 
 import paramiko
 from paramiko.ssh_exception import AuthenticationException
+
+logger = logging.getLogger(__name__)
 
 ProgressFn = Callable[[str, str], None]  # (message, level) -> None where level in info/success/warning/error
 
@@ -37,13 +40,17 @@ def deploy_key(
     on_progress(f"Connecting to {hostname}:{port} as {username}...", "info")
     try:
         client.connect(hostname, port=port, username=username, password=password, timeout=timeout)
+        logger.info(f"Connected to {hostname}:{port} as {username}")
     except AuthenticationException:
+        logger.error(f"Authentication failed for {username}@{hostname}:{port}")
         on_progress("Authentication failed: incorrect username or password.", "error")
         return False
     except socket.timeout as e:
+        logger.error(f"Connection timeout for {hostname}:{port} - {e}")
         on_progress(f"Connection timeout: {e}", "error")
         return False
     except Exception as e:
+        logger.error(f"Connection error for {hostname}:{port} - {e}")
         on_progress(f"Connection error: {e}", "error")
         return False
 
@@ -59,11 +66,13 @@ def deploy_key(
             _, _, stderr = client.exec_command(cmd)
             err = stderr.read().decode()
             if err:
+                logger.warning(f"Error running remote command '{cmd}': {err}")
                 on_progress(f"Error running remote command: {err}", "warning")
                 return False
     finally:
         client.close()
 
+    logger.info("Public key deployed successfully.")
     on_progress("Public key deployed successfully.", "success")
     return True
 
@@ -108,12 +117,15 @@ def test_passwordless(
     try:
         result = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, timeout=15)
     except subprocess.TimeoutExpired:
+        logger.error("Passwordless SSH test timed out.")
         on_progress("Passwordless SSH test timed out.", "error")
         return False
 
     if result.returncode == 0:
+        logger.info(f"Passwordless SSH works for {username}@{hostname}")
         on_progress("Passwordless SSH works.", "success")
         return True
 
+    logger.error(f"Passwordless SSH failed or prompted for password: {result.stderr}")
     on_progress("Passwordless SSH failed or prompted for a password.", "error")
     return False

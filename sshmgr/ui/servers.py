@@ -60,14 +60,20 @@ class ServerDialog(ctk.CTkToplevel):
             value="skip", command=self._update_key_mode,
         ).pack(anchor="w")
 
+        self.key_fields_frame = ctk.CTkFrame(form, fg_color="transparent")
+        self.key_fields_frame.pack(fill="x", pady=(6, 0))
+
+        self.existing_key_frame = ctk.CTkFrame(self.key_fields_frame, fg_color="transparent")
         existing_names = [k.name for k in self.app.store.list_keys()] or [NONE_OPTION]
-        self.existing_key_menu = ctk.CTkOptionMenu(form, values=existing_names)
+        self.existing_key_menu = ctk.CTkOptionMenu(self.existing_key_frame, values=existing_names)
         if server and server.key_name and server.key_name in existing_names:
             self.existing_key_menu.set(server.key_name)
-        self.existing_key_menu.pack(fill="x", pady=(6, 0))
+        self.existing_key_menu.pack(fill="x")
 
-        self.new_key_name_entry = self._labeled_entry(form, "New key name", "")
-        self.new_key_type_menu = ctk.CTkOptionMenu(form, values=["rsa", "ed25519"])
+        self.new_key_frame = ctk.CTkFrame(self.key_fields_frame, fg_color="transparent")
+        self.new_key_name_entry = self._labeled_entry(self.new_key_frame, "New key name", "")
+        ctk.CTkLabel(self.new_key_frame, text="Key type").pack(anchor="w", pady=(10, 2))
+        self.new_key_type_menu = ctk.CTkOptionMenu(self.new_key_frame, values=["rsa", "ed25519"])
         self.new_key_type_menu.pack(fill="x")
 
         if not server or not server.key_name:
@@ -100,7 +106,11 @@ class ServerDialog(ctk.CTkToplevel):
             command=self._update_deploy_row,
         )
         self.deploy_check.pack(anchor="w", pady=(16, 4))
-        self.password_entry = self._labeled_entry(form, "Password", "", show="*")
+        
+        self.password_container = ctk.CTkFrame(form, fg_color="transparent")
+        self.password_container.pack(fill="x")
+        self.password_frame = ctk.CTkFrame(self.password_container, fg_color="transparent")
+        self.password_entry = self._labeled_entry(self.password_frame, "Password", "", show="*")
 
         button_row = ctk.CTkFrame(self, fg_color="transparent")
         button_row.pack(fill="x", padx=16, pady=(0, 16))
@@ -121,12 +131,19 @@ class ServerDialog(ctk.CTkToplevel):
 
     def _update_key_mode(self):
         mode = self.key_mode.get()
-        self.existing_key_menu.configure(state="normal" if mode == "existing" else "disabled")
-        self.new_key_name_entry.configure(state="normal" if mode == "generate" else "disabled")
-        self.new_key_type_menu.configure(state="normal" if mode == "generate" else "disabled")
+        self.existing_key_frame.pack_forget()
+        self.new_key_frame.pack_forget()
+        
+        if mode == "existing":
+            self.existing_key_frame.pack(fill="x")
+        elif mode == "generate":
+            self.new_key_frame.pack(fill="x")
 
     def _update_deploy_row(self):
-        self.password_entry.configure(state="normal" if self.deploy_var.get() else "disabled")
+        if self.deploy_var.get():
+            self.password_frame.pack(fill="x")
+        else:
+            self.password_frame.pack_forget()
 
     def _resolve_key_name(self):
         mode = self.key_mode.get()

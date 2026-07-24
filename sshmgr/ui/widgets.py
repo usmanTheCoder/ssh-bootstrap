@@ -116,17 +116,41 @@ class Toast(ctk.CTkToplevel):
 
 
 class _ModalDialog(ctk.CTkToplevel):
-    def __init__(self, parent, title: str, message: str):
+    def __init__(self, parent, title: str, message: str, level: str = "info"):
         super().__init__(parent)
-        self.title(title)
+        self.title("SSH Configuration Manager")
+        self.geometry("450x260")
         self.resizable(False, False)
         self.transient(parent)
 
-        ctk.CTkLabel(self, text=message, wraplength=340, justify="left").pack(
-            padx=20, pady=(20, 10)
-        )
-        self.button_row = ctk.CTkFrame(self, fg_color="transparent")
-        self.button_row.pack(pady=(0, 16))
+        self.grid_rowconfigure(1, weight=1)
+        self.grid_columnconfigure(0, weight=1)
+
+        color = LEVEL_COLORS.get(level, LEVEL_COLORS["info"])
+        icon = LEVEL_ICONS.get(level, "")
+
+        header_frame = ctk.CTkFrame(self, fg_color=color, corner_radius=0, height=45)
+        header_frame.grid(row=0, column=0, sticky="ew")
+        header_frame.grid_propagate(False)
+
+        ctk.CTkLabel(
+            header_frame, 
+            text=f"{icon}  {title}", 
+            text_color="white", 
+            font=ctk.CTkFont(size=14, weight="bold")
+        ).pack(side="left", padx=16, pady=10)
+
+        content_frame = ctk.CTkFrame(self, fg_color="transparent")
+        content_frame.grid(row=1, column=0, sticky="nsew", padx=24, pady=24)
+        content_frame.grid_rowconfigure(0, weight=1)
+        content_frame.grid_columnconfigure(0, weight=1)
+
+        ctk.CTkLabel(
+            content_frame, text=message, wraplength=400, justify="left", font=ctk.CTkFont(size=13)
+        ).grid(row=0, column=0, sticky="nw")
+
+        self.button_row = ctk.CTkFrame(content_frame, fg_color="transparent")
+        self.button_row.grid(row=1, column=0, sticky="se", pady=(16, 0))
         self.result = None
 
     def _finish(self, result):
@@ -146,20 +170,20 @@ class _ModalDialog(ctk.CTkToplevel):
 
 
 def confirm(parent, title: str, message: str) -> bool:
-    dialog = _ModalDialog(parent, title, message)
+    dialog = _ModalDialog(parent, title, message, level="warning")
     ctk.CTkButton(
-        dialog.button_row, text="Cancel", fg_color="gray40", command=lambda: dialog._finish(False)
-    ).pack(side="left", padx=(0, 8))
+        dialog.button_row, text="Cancel", fg_color="gray40", width=80, command=lambda: dialog._finish(False)
+    ).pack(side="left", padx=(0, 12))
     ctk.CTkButton(
-        dialog.button_row, text="Confirm", fg_color=LEVEL_COLORS["error"],
+        dialog.button_row, text="Confirm", fg_color=LEVEL_COLORS["error"], width=80,
         hover_color="#b91c1c", command=lambda: dialog._finish(True),
     ).pack(side="left")
     return bool(dialog._show_modal())
 
 
 def notify_error(parent, title: str, message: str) -> None:
-    dialog = _ModalDialog(parent, title, message)
-    ctk.CTkButton(dialog.button_row, text="OK", command=lambda: dialog._finish(True)).pack()
+    dialog = _ModalDialog(parent, title, message, level="error")
+    ctk.CTkButton(dialog.button_row, text="OK", width=80, command=lambda: dialog._finish(True)).pack()
     dialog._show_modal()
 
 

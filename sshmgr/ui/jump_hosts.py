@@ -58,14 +58,20 @@ class JumpHostDialog(ctk.CTkToplevel):
             value="skip", command=self._update_key_mode,
         ).pack(anchor="w")
 
+        self.key_fields_frame = ctk.CTkFrame(form, fg_color="transparent")
+        self.key_fields_frame.pack(fill="x", pady=(6, 0))
+
+        self.existing_key_frame = ctk.CTkFrame(self.key_fields_frame, fg_color="transparent")
         existing_names = [k.name for k in self.app.store.list_keys()] or [NONE_OPTION]
-        self.existing_key_menu = ctk.CTkOptionMenu(form, values=existing_names)
+        self.existing_key_menu = ctk.CTkOptionMenu(self.existing_key_frame, values=existing_names)
         if jump_host and jump_host.key_name and jump_host.key_name in existing_names:
             self.existing_key_menu.set(jump_host.key_name)
-        self.existing_key_menu.pack(fill="x", pady=(6, 0))
+        self.existing_key_menu.pack(fill="x")
 
-        self.new_key_name_entry = self._labeled_entry(form, "New key name", "")
-        self.new_key_type_menu = ctk.CTkOptionMenu(form, values=["rsa", "ed25519"])
+        self.new_key_frame = ctk.CTkFrame(self.key_fields_frame, fg_color="transparent")
+        self.new_key_name_entry = self._labeled_entry(self.new_key_frame, "New key name", "")
+        ctk.CTkLabel(self.new_key_frame, text="Key type").pack(anchor="w", pady=(10, 2))
+        self.new_key_type_menu = ctk.CTkOptionMenu(self.new_key_frame, values=["rsa", "ed25519"])
         self.new_key_type_menu.pack(fill="x")
 
         if not jump_host or not jump_host.key_name:
@@ -97,9 +103,13 @@ class JumpHostDialog(ctk.CTkToplevel):
 
     def _update_key_mode(self):
         mode = self.key_mode.get()
-        self.existing_key_menu.configure(state="normal" if mode == "existing" else "disabled")
-        self.new_key_name_entry.configure(state="normal" if mode == "generate" else "disabled")
-        self.new_key_type_menu.configure(state="normal" if mode == "generate" else "disabled")
+        self.existing_key_frame.pack_forget()
+        self.new_key_frame.pack_forget()
+        
+        if mode == "existing":
+            self.existing_key_frame.pack(fill="x")
+        elif mode == "generate":
+            self.new_key_frame.pack(fill="x")
 
     def _resolve_key_name(self):
         mode = self.key_mode.get()
