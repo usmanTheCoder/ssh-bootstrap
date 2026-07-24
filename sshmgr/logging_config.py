@@ -39,12 +39,37 @@ def setup_logging():
         
     try:
         import sentry_sdk
-        sentry_sdk.init(
-            dsn="https://a66252739c8d0ead087ae446a8a5f77c@o4511788661669888.ingest.de.sentry.io/4511788671762512",
-            traces_sample_rate=1.0,
-            profiles_sample_rate=1.0,
-        )
-        logger.info("Sentry SDK initialized successfully.")
+        import subprocess
+        from dotenv import load_dotenv
+        
+        # Load environment variables from .env file
+        load_dotenv(Path(__file__).parent.parent / ".env")
+        
+        def get_git_revision():
+            try:
+                app_dir = Path(__file__).parent.parent
+                rev = subprocess.check_output(
+                    ['git', 'rev-parse', 'HEAD'], 
+                    cwd=app_dir, text=True, stderr=subprocess.DEVNULL
+                ).strip()
+                return f"ssh-bootstrap@{rev}"
+            except Exception:
+                return "ssh-bootstrap@latest"
+                
+        is_debug = bool(os.environ.get("SSH_MANAGER_DEBUG"))
+        dsn = os.environ.get("SENTRY_DSN")
+        
+        if dsn:
+            sentry_sdk.init(
+                dsn=dsn,
+                release=get_git_revision(),
+            environment="development" if is_debug else "production",
+                traces_sample_rate=1.0,
+                profiles_sample_rate=1.0,
+            )
+            logger.info(f"Sentry SDK initialized successfully for release: {get_git_revision()}")
+        else:
+            logger.info("SENTRY_DSN not found in environment; crash reporting is disabled.")
     except ImportError:
         logger.warning("sentry_sdk not installed; crash reporting disabled.")
     except Exception as e:

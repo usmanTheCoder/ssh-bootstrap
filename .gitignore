@@ -52,3 +52,6 @@ remote_ssh_gui_enhanced.py
 *.pem
 *.key
 id_rsa*
+
+# Secrets
+.env
